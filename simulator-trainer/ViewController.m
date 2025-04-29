@@ -6,6 +6,8 @@
 //
 
 #import "ViewController.h"
+#import "EARunningSimulator.h"
+
 
 @implementation ViewController
 
@@ -13,6 +15,8 @@
     [super viewDidLoad];
 
     // Do any additional setup after loading the view.
+    [EARunningSimulator runningSimulator];
+    
 }
 
 

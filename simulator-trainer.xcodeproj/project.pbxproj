@@ -6,8 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5FC346EE2DC0A5CD00572D7F /* EARunningSimulator.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FC346ED2DC0A5CD00572D7F /* EARunningSimulator.m */; };
+		5FC346F12DC0A5DA00572D7F /* EASimulator.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FC346F02DC0A5DA00572D7F /* EASimulator.m */; };
+		5FC346F42DC0A91F00572D7F /* EAXCRun.m in Sources */ = {isa = PBXBuildFile; fileRef = 5FC346F32DC0A91F00572D7F /* EAXCRun.m */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5FC346D52DC0A55100572D7F /* simulator-trainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "simulator-trainer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5FC346EC2DC0A5CD00572D7F /* EARunningSimulator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EARunningSimulator.h; sourceTree = "<group>"; };
+		5FC346ED2DC0A5CD00572D7F /* EARunningSimulator.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EARunningSimulator.m; sourceTree = "<group>"; };
+		5FC346EF2DC0A5DA00572D7F /* EASimulator.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EASimulator.h; sourceTree = "<group>"; };
+		5FC346F02DC0A5DA00572D7F /* EASimulator.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EASimulator.m; sourceTree = "<group>"; };
+		5FC346F22DC0A91F00572D7F /* EAXCRun.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = EAXCRun.h; sourceTree = "<group>"; };
+		5FC346F32DC0A91F00572D7F /* EAXCRun.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = EAXCRun.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -32,6 +44,12 @@
 		5FC346CC2DC0A55100572D7F = {
 			isa = PBXGroup;
 			children = (
+				5FC346EC2DC0A5CD00572D7F /* EARunningSimulator.h */,
+				5FC346ED2DC0A5CD00572D7F /* EARunningSimulator.m */,
+				5FC346EF2DC0A5DA00572D7F /* EASimulator.h */,
+				5FC346F02DC0A5DA00572D7F /* EASimulator.m */,
+				5FC346F22DC0A91F00572D7F /* EAXCRun.h */,
+				5FC346F32DC0A91F00572D7F /* EAXCRun.m */,
 				5FC346D72DC0A55100572D7F /* simulator-trainer */,
 				5FC346D62DC0A55100572D7F /* Products */,
 			);
@@ -118,6 +136,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5FC346EE2DC0A5CD00572D7F /* EARunningSimulator.m in Sources */,
+				5FC346F12DC0A5DA00572D7F /* EASimulator.m in Sources */,
+				5FC346F42DC0A91F00572D7F /* EAXCRun.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -249,7 +270,8 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 44L979X757;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -275,7 +297,8 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 44L979X757;
-				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
