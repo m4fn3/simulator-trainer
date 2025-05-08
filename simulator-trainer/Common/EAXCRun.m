@@ -89,7 +89,6 @@
     
     return nil;
 }
-
 - (NSArray<NSDictionary *> *)simDeviceInfosOnlyBooted:(BOOL)onlyBooted {
     NSArray *arguments = @[@"simctl", @"list", @"--json", @"-e", @"devices"];
 
@@ -112,33 +111,36 @@
         return nil;
     }
 
+    NSMutableDictionary<NSString *, NSDictionary *> *runtimeDetailsCache = [NSMutableDictionary dictionary];
     NSMutableArray<NSDictionary *> *result = [NSMutableArray array];
+
     for (NSString *runtimeKey in deviceMap) {
-        
+        NSDictionary *runtimeDetails = runtimeDetailsCache[runtimeKey];
+        if (!runtimeDetails) {
+            runtimeDetails = [self detailsForSimRuntimeWithdentifier:runtimeKey];
+            if (runtimeDetails) {
+                runtimeDetailsCache[runtimeKey] = runtimeDetails;
+            }
+            else {
+                runtimeDetails = @{};
+            }
+        }
+
         for (NSDictionary *deviceInfo in deviceMap[runtimeKey]) {
             if (onlyBooted && ![deviceInfo[@"state"] isEqualToString:@"Booted"]) {
                 continue;
             }
-            
-            NSArray *arguments = @[@"/Applications/Xcode.app/Contents/Developer/usr/bin/simctl", @"list", @"--json", @"-e", @"runtimes"];
 
-            NSString *simctlOutput = [self xcrunInvokeAndWait:arguments];
-            if (!simctlOutput) {
-                NSLog(@"Failed to retrieve simulator devices: No output.");
-                return nil;
-            }
-            
-            NSDictionary *runtimeDetails = [self detailsForSimRuntimeWithdentifier:runtimeKey];
             NSMutableDictionary *mutableDeviceInfo = [deviceInfo mutableCopy];
             [mutableDeviceInfo addEntriesFromDictionary:@{
-                @"runtime": runtimeDetails ?: @"",
+                @"runtime": runtimeDetails ?: @{},
             }];
-            
+
             [result addObject:mutableDeviceInfo];
         }
     }
 
-    return result;
+    return [result copy];
 }
 
 - (BOOL)isBinaryArm64SimulatorCompatible:(NSString *)binaryPath {

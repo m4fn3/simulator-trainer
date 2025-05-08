@@ -12,8 +12,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface EABootedSimDevice : EASimDevice
 
++ (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice;
 + (EABootedSimDevice  * _Nullable)bootedDevice;
 + (NSArray <EABootedSimDevice *> *)allBootedDevices;
++ (NSArray <EASimDevice *> *)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
 - (BOOL)setupMounts;
@@ -23,6 +25,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setupInjection;
 - (NSString *)pathToLoaderDylib;
 - (void)unjailbreak;
+
+- (void)shutdown;
+- (void)reboot;
 
 @end
 

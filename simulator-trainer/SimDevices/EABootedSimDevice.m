@@ -14,6 +14,20 @@
 
 @implementation EABootedSimDevice
 
++ (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice {
+    if (!simDevice || ![simDevice isKindOfClass:[EASimDevice class]]) {
+        NSLog(@"simDevice must be a valid EASimDevice");
+        return nil;
+    }
+    
+    if (!simDevice.isBooted) {
+        NSLog(@"simDevice must be booted");
+        return nil;
+    }
+    
+    return [[EABootedSimDevice alloc] initWithDict:simDevice.simInfoDict];
+}
+
 + (EABootedSimDevice *)bootedDevice {
     NSArray <EABootedSimDevice *> *runningSimulators = [EABootedSimDevice allBootedDevices];
     if (runningSimulators.count > 1) {
@@ -40,6 +54,35 @@
     
     return devices;
 }
+
++ (NSArray <EASimDevice *> *)allDevices {
+    NSArray *simulatorInfos = [[EAXCRun sharedInstance] simDeviceInfosOnlyBooted:NO];
+    if (!simulatorInfos || simulatorInfos.count == 0) {
+        return nil;
+    }
+    
+    NSMutableArray *devices = [[NSMutableArray alloc] init];
+    for (NSDictionary *deviceInfo in simulatorInfos) {
+        EASimDevice *simdev = [[EASimDevice alloc] initWithDict:deviceInfo];
+        if (!simdev) {
+            continue;
+        }
+        
+        if (simdev.isBooted) {
+            EABootedSimDevice *bootedDevice = [EABootedSimDevice fromSimDevice:simdev];
+            if (bootedDevice) {
+                simdev = bootedDevice;
+            }
+        }
+        
+        if (simdev) {
+            [devices addObject:simdev];
+        }
+    }
+    
+    return devices;
+}
+
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs {
     NSPipe *outputPipe = [NSPipe pipe];
@@ -191,6 +234,17 @@
     }
     
     [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
+}
+
+- (void)shutdown {
+    
+    NSString *output = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"shutdown", self.udidString]];
+    NSLog(@"Shutdown output: %@", output);
+}
+
+- (void)reboot {
+    [self shutdown];
+    [self boot];
 }
 
 @end

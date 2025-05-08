@@ -9,7 +9,7 @@
 #import "EABootedSimDevice.h"
 
 @interface ViewController () {
-    NSArray *bootedDevices;
+    NSArray *allSimDevices;
     BOOL showDemoData;
 }
 
@@ -24,31 +24,39 @@
     [self refreshDeviceList];
 }
 
-- (EABootedSimDevice *)currentDevice {
-    if (bootedDevices.count == 0) {
+- (EASimDevice *)currentDevice {
+    if (allSimDevices.count == 0) {
+        NSLog(@"No devices");
         return nil;
     }
     
     NSInteger selectedIndex = [_devicePopup indexOfSelectedItem];
-    if (selectedIndex >= bootedDevices.count) {
+    if (selectedIndex >= allSimDevices.count) {
         return nil;
     }
     
-    return bootedDevices[selectedIndex];
+    EASimDevice *device = allSimDevices[selectedIndex];
+    NSLog(@"Selected device: %@", device);
+    _bootButton.enabled = !device.isBooted;
+    NSLog(@"boot button enabled: %d", _bootButton.enabled);
+    NSLog(@"device is booted: %d", device.isBooted);
+    
+    return device;
 }
 
 - (void)refreshStatusLabels {
     showDemoData = NO;
     
-    EABootedSimDevice *simulator = [self currentDevice];
-    if (!simulator) {
+    EASimDevice *simulator = [self currentDevice];
+    if (!simulator || !simulator.isBooted) {
         _tweakStatus.stringValue = @"No booted simulators";
         [self disableDeviceButtons];
         _statusImageView.image = [NSImage imageNamed:NSImageNameStatusUnavailable];
         return;
     }
     
-    if ([simulator hasOverlays] || [simulator hasInjection]) {
+    EABootedSimDevice *bootedSim = (EABootedSimDevice *)simulator;
+    if ([bootedSim hasOverlays] || [bootedSim hasInjection]) {
         _pwnButton.enabled = NO;
         _removeJailbreakButton.enabled = YES;
         _rebootButton.enabled = YES;
@@ -62,7 +70,7 @@
     }
     else {
         [self disableDeviceButtons];
-        _pwnButton.enabled = (bootedDevices.count > 0);
+        _pwnButton.enabled = (allSimDevices.count > 0);
         _tweakStatus.stringValue = @"Simulator not jailbroken";
         _statusImageView.image = [NSImage imageNamed:NSImageNameStatusNone];
     }
@@ -73,16 +81,32 @@
 
     [_devicePopup removeAllItems];
 
-    bootedDevices = [EABootedSimDevice allBootedDevices];
-    if (bootedDevices.count > 0) {
-        for (EABootedSimDevice *device in bootedDevices) {
-            [_devicePopup addItemWithTitle:[NSString stringWithFormat:@"%@ - %@ %@ (%@)", [device name], [device platform], [device runtimeVersion], [device udidString]]];
+    allSimDevices = [EABootedSimDevice allDevices];
+    NSLog(@"all devices: %@", allSimDevices);
+    NSInteger firstBootedDevice = -1;
+    if (allSimDevices.count > 0) {
+        for (EASimDevice *device in allSimDevices) {
+            NSString *deviceLabel = [NSString stringWithFormat:@"   %@ - %@ (%@)", [device name], [device platform], [device udidString]];
+            if (device.isBooted) {
+                deviceLabel = [@"(Booted) " stringByAppendingString:deviceLabel];
+
+                if (firstBootedDevice == -1) {
+                    firstBootedDevice = [_devicePopup numberOfItems];
+                }
+            }
+            [_devicePopup addItemWithTitle:deviceLabel];
         }
+        
+        [_devicePopup setEnabled:YES];
     }
     else {
         [_devicePopup addItemWithTitle:@"-- None --"];
         [_devicePopup setEnabled:NO];
         [_tweakStatus setStringValue:@"No running simulators"];
+    }
+    
+    if (firstBootedDevice != -1) {
+        [_devicePopup selectItemAtIndex:firstBootedDevice];
     }
     
     [self refreshStatusLabels];
@@ -94,13 +118,47 @@
     _installedTable.dataSource = self;
     [self.installedTable reloadData];
     
+    _devicePopup.target = self;
+    _devicePopup.action = @selector(refreshStatusLabels);
+    
     _pwnButton.target = self;
     _pwnButton.action = @selector(handleEnableTweaksSelected:);
     
     _removeJailbreakButton.target = self;
     _removeJailbreakButton.action = @selector(handleRemoveJailbreakSelected:);
+    
+    _bootButton.target = self;
+    _bootButton.action = @selector(handleBootSelected:);
 
     [self disableDeviceButtons];
+}
+
+- (void)handleRebootSelected:(NSButton *)sender {
+    EASimDevice *device = [self currentDevice];
+    if (!device) {
+        [self setStatus:@"No active device"];
+        return;
+    }
+    
+    if (device.isBooted) {
+        [(EABootedSimDevice *)device reboot];
+    }
+    else {
+        [device boot];
+    }
+}
+
+- (void)handleBootSelected:(NSButton *)sender {
+    NSLog(@"Booting simulator");
+    EASimDevice *device = [self currentDevice];
+    if (!device) {
+        [self setStatus:@"No active device"];
+        return;
+    }
+    
+    [device boot];
+    
+//    _bootButton.enabled = NO;
 }
 
 - (NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {

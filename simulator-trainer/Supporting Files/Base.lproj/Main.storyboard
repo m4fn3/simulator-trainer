@@ -869,7 +869,7 @@
                                                                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="OI8-Cn-b6s">
                                                                                         <rect key="frame" x="0.0" y="3" width="170" height="11"/>
                                                                                         <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Yes" id="C5u-RH-Nhs">
-                                                                                            <font key="font" metaFont="system" size="9"/>
+                                                                                            <font key="font" metaFont="miniSystem"/>
                                                                                             <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
                                                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                                         </textFieldCell>
@@ -949,9 +949,18 @@
                                     <font key="font" metaFont="smallSystem"/>
                                 </buttonCell>
                             </button>
+                            <button verticalHuggingPriority="750" id="vET-5y-FCQ">
+                                <rect key="frame" x="209" y="276" width="180" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Boot" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5OV-gQ-X4u">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                            </button>
                         </subviews>
                     </view>
                     <connections>
+                        <outlet property="bootButton" destination="vET-5y-FCQ" id="hwq-aN-4gV"/>
                         <outlet property="devicePopup" destination="FPh-dW-GaM" id="L8Z-p0-zgY"/>
                         <outlet property="installIPAButton" destination="9OG-HT-Z6H" id="aqh-OA-Zdr"/>
                         <outlet property="installTweakButton" destination="cUi-HB-qTp" id="zCc-tt-wAC"/>

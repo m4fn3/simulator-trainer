@@ -6,6 +6,7 @@
 //
 
 #import "EASimDevice.h"
+#import "EAXCRun.h"
 
 @implementation EASimDevice
 
@@ -69,6 +70,16 @@
 - (NSString *)platform {
     NSDictionary *runtime = [self.simInfoDict valueForKey:@"runtime"];
     return [runtime valueForKey:@"platform"];
+}
+
+- (void)boot {
+    if (self.isBooted) {
+        NSLog(@"Device is already booted: %@", self);
+        return;
+    }
+    
+    NSString *output = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"boot", self.udidString]];
+    NSLog(@"Boot output: %@", output);
 }
 
 @end

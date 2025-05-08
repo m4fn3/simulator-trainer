@@ -19,6 +19,7 @@
 @property (nonatomic, weak) IBOutlet NSButton *removeJailbreakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installTweakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installIPAButton;
+@property (nonatomic, weak) IBOutlet NSButton *bootButton;
 
 @end
 
