@@ -12,19 +12,22 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface EABootedSimDevice : EASimDevice
 
+@property (nonatomic) BOOL pendingReboot;
+
 + (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice;
 + (EABootedSimDevice  * _Nullable)bootedDevice;
 + (NSArray <EABootedSimDevice *> *)allBootedDevices;
 + (NSArray <EASimDevice *> *)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
-- (BOOL)setupMounts;
+- (BOOL)prepareJbFilesystem;
 - (void)unmountNow;
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
 - (void)setupInjection;
 - (NSString *)pathToLoaderDylib;
 - (void)unjailbreak;
+- (BOOL)isJailbroken;
 
 - (void)shutdown;
 - (void)reboot;

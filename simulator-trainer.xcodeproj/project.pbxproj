@@ -6,15 +6,43 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXCopyFilesBuildPhase section */
+		5F7E9E1B2DD45C9C000F12BA /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		5F6FBAC62DD1807900E475CB /* tweakloader.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = tweakloader.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5FC346D52DC0A55100572D7F /* simulator-trainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "simulator-trainer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5F6FBACC2DD1807900E475CB /* Exceptions for "tweakloader" folder in "tweakloader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			publicHeaders = (
+				tweakloader.h,
+			);
+			target = 5F6FBAC52DD1807900E475CB /* tweakloader */;
+		};
 		5FC347232DC1CB1200572D7F /* Exceptions for "simulator-trainer" folder in "simulator-trainer" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			additionalCompilerFlagsByRelativePath = {
+				SimDevices/EASimDevice.m = "-fno-objc-arc";
+				UI/ViewController.m = "-fno-objc-arc";
+			};
 			membershipExceptions = (
-				"Supporting Files/Resources/loader.dylib",
+				"Supporting Files/bootstrap/CydiaSubstrate",
+				"Supporting Files/bootstrap/FLEX.dylib",
+				"Supporting Files/bootstrap/libhooker.dylib",
+				"Supporting Files/bootstrap/loader.dylib",
 			);
 			target = 5FC346D42DC0A55100572D7F /* simulator-trainer */;
 		};
@@ -25,17 +53,39 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 5FC346D32DC0A55100572D7F /* Resources */;
 			membershipExceptions = (
-				"Supporting Files/Resources/loader.dylib",
+				"Supporting Files/bootstrap/CydiaSubstrate",
+				"Supporting Files/bootstrap/FLEX.dylib",
+				"Supporting Files/bootstrap/libhooker.dylib",
+				"Supporting Files/bootstrap/loader.dylib",
+			);
+		};
+		5FE773252DD45F0500F5F522 /* Exceptions for "simulator-trainer" folder in "Embed Frameworks" phase from "simulator-trainer" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				libobjsee.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = 5F7E9E1B2DD45C9C000F12BA /* Embed Frameworks */;
+			membershipExceptions = (
+				libobjsee.framework,
 			);
 		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		5F6FBAC72DD1807900E475CB /* tweakloader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5F6FBACC2DD1807900E475CB /* Exceptions for "tweakloader" folder in "tweakloader" target */,
+			);
+			path = tweakloader;
+			sourceTree = "<group>";
+		};
 		5FC346D72DC0A55100572D7F /* simulator-trainer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5FC347232DC1CB1200572D7F /* Exceptions for "simulator-trainer" folder in "simulator-trainer" target */,
 				5FC347252DC1CB1C00572D7F /* Exceptions for "simulator-trainer" folder in "Copy Bundle Resources" phase from "simulator-trainer" target */,
+				5FE773252DD45F0500F5F522 /* Exceptions for "simulator-trainer" folder in "Embed Frameworks" phase from "simulator-trainer" target */,
 			);
 			path = "simulator-trainer";
 			sourceTree = "<group>";
@@ -43,6 +93,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5F6FBAC32DD1807900E475CB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D22DC0A55100572D7F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -57,6 +114,7 @@
 			isa = PBXGroup;
 			children = (
 				5FC346D72DC0A55100572D7F /* simulator-trainer */,
+				5F6FBAC72DD1807900E475CB /* tweakloader */,
 				5FC346D62DC0A55100572D7F /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,13 +123,47 @@
 			isa = PBXGroup;
 			children = (
 				5FC346D52DC0A55100572D7F /* simulator-trainer.app */,
+				5F6FBAC62DD1807900E475CB /* tweakloader.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		5F6FBAC12DD1807900E475CB /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
+		5F6FBAC52DD1807900E475CB /* tweakloader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5F6FBACD2DD1807900E475CB /* Build configuration list for PBXNativeTarget "tweakloader" */;
+			buildPhases = (
+				5F6FBAC12DD1807900E475CB /* Headers */,
+				5F6FBAC22DD1807900E475CB /* Sources */,
+				5F6FBAC32DD1807900E475CB /* Frameworks */,
+				5F6FBAC42DD1807900E475CB /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5F6FBAC72DD1807900E475CB /* tweakloader */,
+			);
+			name = tweakloader;
+			packageProductDependencies = (
+			);
+			productName = tweakloader;
+			productReference = 5F6FBAC62DD1807900E475CB /* tweakloader.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		5FC346D42DC0A55100572D7F /* simulator-trainer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5FC346E82DC0A55400572D7F /* Build configuration list for PBXNativeTarget "simulator-trainer" */;
@@ -79,6 +171,7 @@
 				5FC346D12DC0A55100572D7F /* Sources */,
 				5FC346D22DC0A55100572D7F /* Frameworks */,
 				5FC346D32DC0A55100572D7F /* Resources */,
+				5F7E9E1B2DD45C9C000F12BA /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -103,6 +196,9 @@
 				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
+					5F6FBAC52DD1807900E475CB = {
+						CreatedOnToolsVersion = 16.2;
+					};
 					5FC346D42DC0A55100572D7F = {
 						CreatedOnToolsVersion = 16.2;
 					};
@@ -123,11 +219,19 @@
 			projectRoot = "";
 			targets = (
 				5FC346D42DC0A55100572D7F /* simulator-trainer */,
+				5F6FBAC52DD1807900E475CB /* tweakloader */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		5F6FBAC42DD1807900E475CB /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D32DC0A55100572D7F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -138,6 +242,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5F6FBAC22DD1807900E475CB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D12DC0A55100572D7F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -148,6 +259,83 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		5F6FBACA2DD1807900E475CB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 44L979X757;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.objc.tweakloader;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		5F6FBACB2DD1807900E475CB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = 44L979X757;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.6;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.objc.tweakloader;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Release;
+		};
 		5FC346E62DC0A55400572D7F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -275,6 +463,10 @@
 				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -282,6 +474,13 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer";
@@ -302,6 +501,10 @@
 				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -309,6 +512,13 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer";
@@ -320,6 +530,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5F6FBACD2DD1807900E475CB /* Build configuration list for PBXNativeTarget "tweakloader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5F6FBACA2DD1807900E475CB /* Debug */,
+				5F6FBACB2DD1807900E475CB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5FC346D02DC0A55100572D7F /* Build configuration list for PBXProject "simulator-trainer" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

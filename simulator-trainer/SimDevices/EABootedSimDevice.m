@@ -20,6 +20,10 @@
         return nil;
     }
     
+    if ([simDevice isKindOfClass:[EABootedSimDevice class]]) {
+        return (EABootedSimDevice *)simDevice;
+    }
+    
     if (!simDevice.isBooted) {
         NSLog(@"simDevice must be booted");
         return nil;
@@ -27,15 +31,15 @@
     
     return [[EABootedSimDevice alloc] initWithDict:simDevice.simInfoDict];
 }
-
-+ (EABootedSimDevice *)bootedDevice {
-    NSArray <EABootedSimDevice *> *runningSimulators = [EABootedSimDevice allBootedDevices];
-    if (runningSimulators.count > 1) {
-        NSLog(@"Multiple simulators are booted, choosing the first one. Running Sims: %@", runningSimulators);
-    }
-    
-   return [runningSimulators firstObject];
-}
+//
+//+ (EABootedSimDevice *)bootedDevice {
+//    NSArray <EABootedSimDevice *> *runningSimulators = [EABootedSimDevice allBootedDevices];
+//    if (runningSimulators.count > 1) {
+//        NSLog(@"Multiple simulators are booted, choosing the first one. Running Sims: %@", runningSimulators);
+//    }
+//    
+//   return [runningSimulators firstObject];
+//}
 
 + (NSArray <EABootedSimDevice *> *)allBootedDevices {
     NSArray *runningSimulatorInfos = [[EAXCRun sharedInstance] simDeviceInfosOnlyBooted:YES];
@@ -64,7 +68,7 @@
     NSMutableArray *devices = [[NSMutableArray alloc] init];
     for (NSDictionary *deviceInfo in simulatorInfos) {
         EASimDevice *simdev = [[EASimDevice alloc] initWithDict:deviceInfo];
-        if (!simdev) {
+        if (!simdev || !simdev.platform) {
             continue;
         }
         
@@ -83,6 +87,13 @@
     return devices;
 }
 
+- (instancetype)initWithDict:(NSDictionary *)simInfoDict {
+    if ((self = [super initWithDict:simInfoDict])) {
+        self.pendingReboot = NO;
+    }
+    
+    return self;
+}
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs {
     NSPipe *outputPipe = [NSPipe pipe];
@@ -118,22 +129,24 @@
 }
 
 
-- (NSArray <NSString *> *)_allOverlayMountPointPaths {
+- (NSArray <NSString *> *)directoriesToOverlay {
     return @[
-        [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/"],
+        [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"],
+        [self.runtimeRoot stringByAppendingPathComponent:@"/Library"],
+        [self.runtimeRoot stringByAppendingPathComponent:@"/private/var"],
     ];
 }
 
 - (void)unmountNow {
-    for (NSString *overlayPath in [self _allOverlayMountPointPaths]) {
+    for (NSString *overlayPath in [self directoriesToOverlay]) {
         if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
             NSLog(@"Failed to unmount path: %@", overlayPath);
         }
     }
 }
 
-- (BOOL)setupMounts {
-    for (NSString *overlayPath in [self _allOverlayMountPointPaths]) {
+- (BOOL)prepareJbFilesystem {
+    for (NSString *overlayPath in [self directoriesToOverlay]) {
         if (![[NSFileManager defaultManager] fileExistsAtPath:overlayPath]) {
             NSLog(@"host-relative mount point path does not exist: %@", overlayPath);
             [self unmountNow];
@@ -150,13 +163,75 @@
         NSLog(@"Setup overlay at sim://%@", runtimeRelPath);
     }
     
+    // mkdir:
+    // /private/var/tmp/
+    // /Library/MobileSubstrate/DynamicLibraries/
+    NSString *tmpDir = [self.runtimeRoot stringByAppendingPathComponent:@"/private/var/tmp"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:tmpDir]) {
+        NSError *error = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:tmpDir withIntermediateDirectories:YES attributes:nil error:&error];
+        if (error) {
+            NSLog(@"Failed to create tmp directory: %@", error);
+            return NO;
+        }
+    }
+    
+    NSString *libDir = [self.runtimeRoot stringByAppendingPathComponent:@"/Library/MobileSubstrate/DynamicLibraries"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:libDir]) {
+        NSError *error = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:libDir withIntermediateDirectories:YES attributes:nil error:&error];
+        if (error) {
+            NSLog(@"Failed to create lib directory: %@", error);
+            return NO;
+        }
+    }
+    
+    NSDictionary *bundleFiles = @{
+        @"FLEX.dylib": @"/Library/MobileSubstrate/DynamicLibraries/FLEX.dylib",
+        @"FLEX.plist": @"/Library/MobileSubstrate/DynamicLibraries/FLEX.plist",
+        @"CydiaSubstrate": @"/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
+        @"libhooker.dylib": @"/usr/lib/libhooker.dylib",
+        @"loader.dylib": @"/usr/lib/loader.dylib",
+    };
+    
+    for (NSString *bundleFile in bundleFiles) {
+        NSString *sourcePath = [[NSBundle mainBundle] pathForResource:bundleFile ofType:nil];
+        if (!sourcePath) {
+            NSLog(@"Failed to find bundle file: %@", bundleFile);
+            continue;
+        }
+        
+        NSString *targetPath = [self.runtimeRoot stringByAppendingPathComponent:bundleFiles[bundleFile]];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:targetPath]) {
+            NSLog(@"File already exists at target path: %@", targetPath);
+            continue;
+        }
+        
+        NSString *targetDir = [targetPath stringByDeletingLastPathComponent];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:targetDir]) {
+            NSError *error = nil;
+            [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:&error];
+            if (error) {
+                NSLog(@"Failed to create target directory: %@", error);
+                continue;
+            }
+        }
+        
+        NSError *error = nil;
+        [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:targetPath error:&error];
+        if (error) {
+            NSLog(@"Failed to copy bundle file: %@, error: %@", bundleFile, error);
+            continue;
+        }        
+    }
+    
     return YES;
 }
 
 - (BOOL)hasOverlays {    
     NSString *libraryMountPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/"];
     if (![[NSFileManager defaultManager] fileExistsAtPath:libraryMountPath]) {
-        NSLog(@"simruntime does not have a `/usr/lib/` directory");
+        NSLog(@"simruntime does not have a `/usr/lib/` directory: %@", self.runtimeRoot);
         return NO;
     }
     
@@ -173,6 +248,11 @@
 }
 
 - (BOOL)hasInjection {
+    if (!self.runtimeRoot) {
+        NSLog(@"No runtime root?");
+        return NO;
+    }
+
     NSString *libPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/libobjc.A.dylib"];
     NSString *stdoutString = nil;
     NSError *error = nil;
@@ -204,7 +284,7 @@
     }
     
     NSString *libPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/libobjc.A.dylib"];
-    [[AppBinaryPatcher new] injectDylib:simRelativeLoaderPath intoBinary:libPath completion:^(BOOL success, NSError *error) {
+    [AppBinaryPatcher injectDylib:simRelativeLoaderPath intoBinary:libPath completion:^(BOOL success, NSError *error) {
         if (!success) {
             NSLog(@"Failed: %@", error.localizedDescription);
         }
@@ -216,35 +296,99 @@
 }
 
 - (NSString *)pathToLoaderDylib {
-    NSString *runtimelLibraryDir = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"];
-    return [runtimelLibraryDir stringByAppendingPathComponent:@"loader.dylib"];
+    NSString *runtimeLibraryDir = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"];
+    return [runtimeLibraryDir stringByAppendingPathComponent:@"loader.dylib"];
 }
 
 - (void)unjailbreak {
-    if ([self hasInjection]) {
-        NSError *error = nil;
-        [[NSFileManager defaultManager] removeItemAtPath:self.pathToLoaderDylib error:&error];
-        if (error) {
-            NSLog(@"Failed to remove the tweak loader. path: %@, error: %@", self.pathToLoaderDylib, error);
+    if (!self.isBooted || ![self isJailbroken]) {
+        NSLog(@"Cannot unjailbreak a device that is not booted or not jailbroken: %@", self);
+        return;
+    }
+    
+    [self _performBlockOnCommandQueue:^{
+        // Treat this as a reboot
+        self.pendingReboot = YES;
+        [self shutdown];
+        
+        if ([self hasOverlays]) {
+            [self unmountNow];
         }
-    }
-    
-    if ([self hasOverlays]) {
-        [self unmountNow];
-    }
-    
-    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
+        
+        BOOL isReset = NO;
+        for (int i = 0; i < 10; i++) {
+            [self reloadDeviceState];
+            isReset = !self.isBooted && ![self isJailbroken];
+            if (isReset) {
+                break;
+            }
+            
+            [NSThread sleepForTimeInterval:1.0];
+        }
+        
+        if (!isReset) {
+            NSLog(@"Failed to unjailbreak simulator: %@", self);
+            // Cancel reboot
+            self.pendingReboot = NO;
+            return;
+        }
+        
+        [self boot];
+    }];
 }
 
 - (void)shutdown {
+    if (!self.isBooted) {
+        NSLog(@"Cannot shutdown a device that is not booted: %@", self);
+        return;
+    }
     
-    NSString *output = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"shutdown", self.udidString]];
-    NSLog(@"Shutdown output: %@", output);
+    [self _performBlockOnCommandQueue:^{
+        [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"shutdown", self.udidString]];
+        
+        for (int i = 0; i < 10 && !self.isBooted; i++) {
+            [self reloadDeviceState];
+            if (!self.isBooted) {
+                break;
+            }
+            
+            [NSThread sleepForTimeInterval:1.0];
+        }
+                
+        // If the device was shutdown for a reboot, boot it again now.
+        // Note: Reboots will not call the didShutdown: delegate method
+        if (self.pendingReboot) {
+            // -boot will reset pendingReboot upon completion,
+            // then call delegate method deviceDidReboot:
+            [self boot];
+            return;
+        }
+        
+        if (self.delegate) {
+            if (!self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidShutdown:)]) {
+                [self.delegate deviceDidShutdown:self];
+            }
+        }
+    }];
 }
 
 - (void)reboot {
+    if (!self.isBooted) {
+        NSLog(@"Cannot reboot a device that is not booted: %@", self);
+        return;
+    }
+    
+    if (self.pendingReboot) {
+        NSLog(@"Already pending reboot: %@", self);
+        return;
+    }
+    
+    self.pendingReboot = YES;
     [self shutdown];
-    [self boot];
+}
+
+- (BOOL)isJailbroken {
+    return [self hasOverlays] || [self hasInjection];
 }
 
 @end

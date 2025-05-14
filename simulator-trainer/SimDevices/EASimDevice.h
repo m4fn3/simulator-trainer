@@ -9,12 +9,28 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class EASimDevice;
+@protocol EASimDeviceDelegate <NSObject>
+
+@optional
+- (void)deviceDidBoot:(EASimDevice *)simDevice;
+- (void)deviceDidShutdown:(EASimDevice *)simDevice;
+- (void)deviceDidReboot:(EASimDevice *)simDevice;
+- (void)device:(EASimDevice *)simDevice didFailToBootWithError:(NSError *)error;
+
+@end
+
 @interface EASimDevice : NSObject
 
-@property (nonatomic, assign, getter=_determineIfBooted) BOOL isBooted;
+@property (nonatomic, weak) id<EASimDeviceDelegate> delegate;
+@property (nonatomic) BOOL isBooted;
 @property (nonatomic, copy) NSDictionary *simInfoDict;
 
 - (instancetype)initWithDict:(NSDictionary *)simInfoDict;
+
+- (void)_performBlockOnCommandQueue:(dispatch_block_t)block;
+
+- (NSString *)displayString;
 - (NSString *)udidString;
 - (NSString *)runtimeRoot;
 - (NSString *)dataRoot;
@@ -22,6 +38,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString *)runtimeVersion;
 - (NSString *)platform;
 
+- (void)reloadDeviceState;
 - (void)boot;
 
 @end

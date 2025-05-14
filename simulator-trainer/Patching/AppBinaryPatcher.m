@@ -6,12 +6,13 @@
 //
 
 #import "AppBinaryPatcher.h"
+#import "EAXCRun.h"
+#import "CommandRunner.h"
 
 @implementation AppBinaryPatcher
 
-- (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion {
-
-    [self thinBinaryAtPath:binaryPath];
++ (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion {
+    [AppBinaryPatcher thinBinaryAtPath:binaryPath];
 
     NSString *optoolPath = [[NSBundle mainBundle] pathForResource:@"optool" ofType:nil];
     NSArray *arguments = @[
@@ -21,49 +22,26 @@
         @"-t", binaryPath
     ];
 
-    NSTask *optoolTask = [[NSTask alloc] init];
-    optoolTask.launchPath = optoolPath;
-    optoolTask.arguments = arguments;
-    
-    [optoolTask launch];
-    [optoolTask waitUntilExit];
-    
-    if (optoolTask.terminationStatus != 0) {
-        NSError *error = [NSError errorWithDomain:@"AppBinaryPatcher" code:1 userInfo:@{NSLocalizedDescriptionKey:@"optool failed"}];
+    NSString *optoolOutput = nil;
+    NSError *optoolError = nil;
+    if ([CommandRunner runCommand:optoolPath withArguments:arguments stdoutString:&optoolOutput error:&optoolError] == NO) {
+        NSLog(@"optool error: %@", optoolError);
         if (completion) {
-            completion(NO, error);
+            completion(NO, optoolError);
         }
+        
         return;
     }
-
-    [self codesignItemAtPath:binaryPath completion:completion];
+    
+    [AppBinaryPatcher codesignItemAtPath:binaryPath completion:completion];
 }
 
-- (void)thinBinaryAtPath:(NSString *)binaryPath {
-    NSTask *lipoTask = [[NSTask alloc] init];
-    lipoTask.launchPath = @"/usr/bin/lipo";
-    lipoTask.arguments = @[@"-info", binaryPath];
-
-    NSPipe *pipe = [NSPipe pipe];
-    lipoTask.standardOutput = pipe;
-    lipoTask.standardError = pipe;
-
-    [lipoTask launch];
-    [lipoTask waitUntilExit];
-
-    NSString *output = [[NSString alloc] initWithData:[[pipe fileHandleForReading] readDataToEndOfFile] encoding:NSUTF8StringEncoding];
-    if ([output containsString:@"Non-fat"]) {
-        return;
-    }
-
++ (void)thinBinaryAtPath:(NSString *)binaryPath {
+    NSString *output = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
     if ([output containsString:@"arm64"]) {
         NSString *tempPath = [binaryPath stringByAppendingString:@"_arm64"];
-        NSTask *thinTask = [[NSTask alloc] init];
-        thinTask.launchPath = @"/usr/bin/lipo";
-        thinTask.arguments = @[@"-thin", @"arm64", binaryPath, @"-o", tempPath];
-        [thinTask launch];
-        [thinTask waitUntilExit];
-
+       [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", binaryPath, @"-thin", @"arm64", @"-o", tempPath]];
+        
         if ([[NSFileManager defaultManager] fileExistsAtPath:tempPath]) {
             [[NSFileManager defaultManager] removeItemAtPath:binaryPath error:nil];
             [[NSFileManager defaultManager] moveItemAtPath:tempPath toPath:binaryPath error:nil];
@@ -71,7 +49,7 @@
     }
 }
 
-- (void)codesignItemAtPath:(NSString *)path completion:(void (^)(BOOL, NSError * _Nullable))completion {
++ (void)codesignItemAtPath:(NSString *)path completion:(void (^)(BOOL, NSError * _Nullable))completion {
     NSTask *codesignTask = [[NSTask alloc] init];
     codesignTask.launchPath = @"/usr/bin/codesign";
     codesignTask.arguments = @[@"-f", @"-s", @"-", @"--generate-entitlement-der", path];
@@ -88,7 +66,8 @@
         if (completion) {
             completion(YES, nil);
         }
-    } else {
+    }
+    else {
         NSError *error = [NSError errorWithDomain:@"AppBinaryPatcher" code:2 userInfo:@{NSLocalizedDescriptionKey: output}];
         if (completion) {
             completion(NO, error);
@@ -96,4 +75,17 @@
     }
 }
 
++ (BOOL)isBinaryArm64SimulatorCompatible:(NSString *)binaryPath {
+    NSString *otoolOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"otool", @"-l", binaryPath]];
+    NSString *lipoOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
+    return [lipoOutput containsString:@"arm64"] && [otoolOutput containsString:@"platform 7"];
+}
+
+//+ (BOOL)adhocSignBinary:(NSString *)binaryPath {
+//    NSArray *arguments = @[@"codesign", @"-f", @"-s", @"-", binaryPath];
+//    NSString *signOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:arguments];
+//    return signOutput && ![signOutput containsString:@"fail"];
+//}
+
 @end
+

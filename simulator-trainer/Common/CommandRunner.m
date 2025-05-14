@@ -10,7 +10,6 @@
 @implementation CommandRunner
 
 + (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
-
     NSTask *task = [[NSTask alloc] init];
     task.launchPath = command;
     task.arguments = arguments;
@@ -18,42 +17,43 @@
     NSPipe *outputPipe = nil;
     if (stdoutString != nil) {
         outputPipe = [NSPipe pipe];
-        [task setStandardOutput:outputPipe];
+        task.standardOutput = outputPipe;
     }
     
     NSPipe *errorPipe = [NSPipe pipe];
-    [task setStandardError:errorPipe];
+    task.standardError = errorPipe;
 
     [task launch];
     [task waitUntilExit];
     
-    if (task.terminationStatus != 0 && errorOut) {
-
-        NSString *stdErrString = [CommandRunner _readStringFromPipe:errorPipe withTimeout:5];
-        if (stdErrString) {
-            NSDictionary *userInfo = @{NSLocalizedDescriptionKey: stdErrString};
-            *errorOut = [NSError errorWithDomain:@"ExecutionError" code:task.terminationStatus userInfo:userInfo];
-        }
-        else {
-            *errorOut = [NSError errorWithDomain:@"ExecutionError" code:task.terminationStatus userInfo:nil];
-        }
+    NSString *stdErrString = [CommandRunner _readStringFromPipe:errorPipe withTimeout:5.0];
+    if (stdoutString != nil && outputPipe != nil) {
+        *stdoutString = [CommandRunner _readStringFromPipe:outputPipe withTimeout:5.0];
     }
     
-    // Read stdout if caller requested it
-    if (stdoutString != nil) {
-        *stdoutString = [CommandRunner _readStringFromPipe:outputPipe withTimeout:5];
-    }
-    
-    // Close stdio pipes
+    [[errorPipe fileHandleForReading] closeFile];
     if (outputPipe) {
         [[outputPipe fileHandleForReading] closeFile];
     }
-    [[errorPipe fileHandleForReading] closeFile];
     
+    if (task.terminationStatus != 0 && errorOut) {
+        *errorOut = [NSError errorWithDomain:@"CommandExecutionErrorDomain" code:task.terminationStatus userInfo:@{
+            NSLocalizedDescriptionKey: @"Command execution failed",
+            NSUnderlyingErrorKey: [NSError errorWithDomain:@"CommandExecutionErrorDomain" code:task.terminationStatus userInfo:@{
+                NSLocalizedDescriptionKey: @"Command execution failed",
+                @"CommandPath": command,
+                @"Arguments": arguments ?: @[],
+                @"TerminationStatus": @(task.terminationStatus),
+                @"CommandOutput": *stdoutString ?: @"",
+                @"CommandError": stdErrString ?: @""
+            }],
+        }];
+    }
+
     return task.terminationStatus == 0;
 }
 
-+ (NSString *)_readStringFromPipe:(NSPipe *)pipe withTimeout:(NSTimeInterval)timeout {
++ (NSString *)_old_eadStringFromPipe:(NSPipe *)pipe withTimeout:(NSTimeInterval)timeout {
     
     dispatch_queue_t readQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
     dispatch_semaphore_t sem = dispatch_semaphore_create(0);
@@ -79,5 +79,39 @@
     
     return nil;
 }
+
++ (NSString * _Nullable)_readStringFromPipe:(NSPipe *)pipe withTimeout:(NSTimeInterval)timeout {
+    __block NSData *readData = nil;
+
+    if (timeout <= 0) {
+        readData = [pipe.fileHandleForReading readDataToEndOfFile];
+    }
+    else {
+        dispatch_queue_t read_queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+        dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+        dispatch_async(read_queue, ^{
+            readData = [pipe.fileHandleForReading readDataToEndOfFile];
+            dispatch_semaphore_signal(sem);
+        });
+
+        if (dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC))) != 0) {
+            NSLog(@"Timeout reading from pipe after %f seconds.", timeout);
+            return nil;
+        }
+    }
+
+    if (readData && readData.length > 0) {
+        NSString *output = [[NSString alloc] initWithData:readData encoding:NSUTF8StringEncoding];
+        if ([output hasSuffix:@"\n"]) {
+            output = [output substringToIndex:(output.length - 1)];
+        }
+
+        return output;
+    }
+
+    return nil;
+}
+
                    
 @end

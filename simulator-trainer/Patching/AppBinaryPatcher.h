@@ -11,7 +11,10 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface AppBinaryPatcher : NSObject
 
-- (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion;
++ (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion;
++ (void)codesignItemAtPath:(NSString *)path completion:(void (^)(BOOL, NSError * _Nullable))completion;
++ (void)thinBinaryAtPath:(NSString *)binaryPath;
++ (BOOL)isBinaryArm64SimulatorCompatible:(NSString *)binaryPath;
 
 @end
 
