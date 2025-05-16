@@ -24,7 +24,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, weak) id<EASimDeviceDelegate> delegate;
 @property (nonatomic) BOOL isBooted;
-@property (nonatomic, copy) NSDictionary *simInfoDict;
+@property (nonatomic, assign) NSDictionary *coreSimDevice;
 
 - (instancetype)initWithDict:(NSDictionary *)simInfoDict;
 

@@ -8,12 +8,97 @@
 #import "EASimDevice.h"
 #import "EAXCRun.h"
 #import "CommandRunner.h"
+#import <objc/runtime.h>
+#import <objc/message.h>
 
 @interface EASimDevice () {
     dispatch_queue_t _commandQueue;
 }
 @end
 
+static void printAllObjcMethods(id obj) {
+    unsigned int instanceMethodCount = 0;
+    Method *instanceMethods = class_copyMethodList([obj class], &instanceMethodCount);
+    
+    for (unsigned int i = 0; i < instanceMethodCount; i++) {
+        Method method = instanceMethods[i];
+        SEL selector = method_getName(method);
+        const char *name = sel_getName(selector);
+        printf("-%s;\n", name);
+    }
+    
+    free(instanceMethods);
+    
+    unsigned int classMethodCount = 0;
+    Class cls = [obj class];
+    Class superClass = class_getSuperclass(cls);
+    while (superClass) {
+        Method *classMethods = class_copyMethodList(superClass, &classMethodCount);
+        
+        for (unsigned int i = 0; i < classMethodCount; i++) {
+            Method method = classMethods[i];
+            SEL selector = method_getName(method);
+            const char *name = sel_getName(selector);
+            printf("+%s;\n", name);
+        }
+        
+        free(classMethods);
+        superClass = class_getSuperclass(superClass);
+    }
+    
+    unsigned int protocolCount = 0;
+    Protocol * __unsafe_unretained *protocols = class_copyProtocolList([obj class], &protocolCount);
+    for (unsigned int i = 0; i < protocolCount; i++) {
+        Protocol *protocol = protocols[i];
+        const char *name = protocol_getName(protocol);
+        printf("@ %s\n", name);
+        
+        unsigned int methodCount = 0;
+        struct objc_method_description *methods = protocol_copyMethodDescriptionList(protocol, YES, YES, &methodCount);
+        for (unsigned int j = 0; j < methodCount; j++) {
+            struct objc_method_description method = methods[j];
+            const char *name = sel_getName(method.name);
+            printf("  - %s\n", name);
+        }
+        free(methods);
+        
+    }
+    
+    free(protocols);
+    
+    unsigned int ivarCount = 0;
+    Ivar *ivars = class_copyIvarList([obj class], &ivarCount);
+    
+    for (unsigned int i = 0; i < ivarCount; i++) {
+        
+        Ivar ivar = ivars[i];
+        const char *name = ivar_getName(ivar);
+        const char *type = ivar_getTypeEncoding(ivar);
+        @try {
+            NSString *ivarStringValue = [NSString stringWithFormat:@"%@", [obj valueForKey:[NSString stringWithUTF8String:name]]];
+            printf("  @ivar %s: %s = %s\n", name, type, ivarStringValue.UTF8String);
+        }
+        @catch (NSException *exception) {
+        }        
+    }
+    free(ivars);
+    
+    unsigned int propertyCount = 0;
+    objc_property_t *properties = class_copyPropertyList([obj class], &propertyCount);
+    for (unsigned int i = 0; i < propertyCount; i++) {
+        objc_property_t property = properties[i];
+        const char *name = property_getName(property);
+        const char *attributes = property_getAttributes(property);
+        @try {
+            NSString *propertyStringValue = [NSString stringWithFormat:@"%@", [obj valueForKey:[NSString stringWithUTF8String:name]]];
+            printf("  @property %s: %s = %s\n", name, attributes, propertyStringValue.UTF8String);
+        }
+        @catch (NSException *exception) {
+        }
+    }
+    free(properties);
+}
+    
 @implementation EASimDevice
 
 - (instancetype)initWithDict:(NSDictionary *)simInfoDict {
@@ -23,10 +108,11 @@
     }
     
     if ((self = [super init])) {
-        self.simInfoDict = simInfoDict;
+        self.coreSimDevice = simInfoDict;
         _commandQueue = dispatch_queue_create("com.simulatortrainer.commandqueue", DISPATCH_QUEUE_SERIAL);
         
-        self.isBooted = [self.simInfoDict[@"state"] isEqualToString:@"Booted"];
+        NSString *state = ((id (*)(id, SEL))objc_msgSend)(simInfoDict, NSSelectorFromString(@"stateString"));
+        self.isBooted = [state isEqualToString:@"Booted"];
     }
     
     return self;
@@ -37,7 +123,7 @@
 }
 
 - (NSString *)debugDescription {
-    return [NSString stringWithFormat:@"<%@ %p booted:%d, %@>", NSStringFromClass(self.class), self, self.isBooted, self.simInfoDict];
+    return [NSString stringWithFormat:@"<%@ %p booted:%d, %@>", NSStringFromClass(self.class), self, self.isBooted, self.coreSimDevice];
 }
 
 - (NSString *)displayString {
@@ -50,62 +136,62 @@
 }
 
 - (NSString *)udidString {
-    return [self.simInfoDict valueForKey:@"udid"];
+    NSUUID *udidUUID = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"UDID"));
+    if (!udidUUID) {
+        NSLog(@"Failed to get UDID for device: %@", self);
+        return nil;
+    }
+    
+    return [udidUUID UUIDString];
 }
 
 - (NSString *)runtimeRoot {
-    if (!self.simInfoDict) {
-        NSLog(@"Requesting runtime root but simInfoDict not found for device: %@", self);
+    if (!self.coreSimDevice) {
+        NSLog(@"-runtimeRoot: Requesting runtime root but simInfoDict not found for device: %@", self);
         return nil;
     }
     
-    NSDictionary *runtime = [self.simInfoDict valueForKey:@"runtime"];
-    if (!runtime) {
-        [self reloadDeviceState];
-        
-        runtime = [self.simInfoDict valueForKey:@"runtime"];
-    }
-    
-    if (!runtime) {
-        NSLog(@"No runtime found for device: %@", self.simInfoDict);
+    id simruntime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
+    if (!simruntime) {
+        NSLog(@"-runtimeRoot: Failed to get simruntime for device: %@", self);
         return nil;
     }
     
-    return [runtime valueForKey:@"runtimeRoot"];
+    NSURL *runtimeRootURL = ((id (*)(id, SEL))objc_msgSend)(simruntime, NSSelectorFromString(@"runtimeRootURL"));
+    if (!runtimeRootURL) {
+        NSLog(@"-runtimeRoot: Failed to get runtime root URL for device: %@", self);
+        return nil;
+    }
+    
+    return [runtimeRootURL path];
 }
 
 - (NSString *)dataRoot {
-    return [self.simInfoDict valueForKey:@"dataPath"];
+    return [self.coreSimDevice valueForKey:@"dataPath"];
 }
 
 - (NSString *)name {
-    return [self.simInfoDict valueForKey:@"name"];
+    return ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"name"));
 }
 
 - (NSString *)runtimeVersion {
-    NSDictionary *runtime = [self.simInfoDict valueForKey:@"runtime"];
+    NSDictionary *runtime = [self.coreSimDevice valueForKey:@"runtime"];
     return [runtime valueForKey:@"version"];
 }
 
 - (NSString *)platform {
-    NSDictionary *runtime = [self.simInfoDict valueForKey:@"runtime"];
-    return [runtime valueForKey:@"platform"];
+    id simruntime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
+    if (!simruntime) {
+        NSLog(@"-platform: Failed to get simruntime for device: %@", self);
+        return nil;
+    }
+    
+    return ((id (*)(id, SEL))objc_msgSend)(simruntime, NSSelectorFromString(@"shortName"));
 }
 
 - (void)reloadDeviceState {
-    NSDictionary *runtime = [self.simInfoDict valueForKey:@"runtime"];
-    NSDictionary *deviceInfo = [[EAXCRun sharedInstance] simDeviceInfoForUDID:self.udidString];
-    if (!deviceInfo) {
-        NSLog(@"Failed to refresh device status: %@", self);
-        return;
-    }
-    
-    NSMutableDictionary *updatedInfo = [deviceInfo mutableCopy];
-    [updatedInfo setValue:runtime forKey:@"runtime"];
-    [updatedInfo setValue:runtime[@"identifier"] forKey:@"runtimeIdentifier"];
-    
-    self.simInfoDict = updatedInfo;
-    self.isBooted = [self.simInfoDict[@"state"] isEqualToString:@"Booted"];
+    self.coreSimDevice = [[EAXCRun sharedInstance] simDeviceInfoForUDID:self.udidString];
+    self.isBooted = [((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString")) isEqualToString:@"Booted"];
 }
 
 - (void)_performBlockOnCommandQueue:(dispatch_block_t)block {
