@@ -15,7 +15,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL pendingReboot;
 
 + (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice;
-+ (EABootedSimDevice  * _Nullable)bootedDevice;
 + (NSArray <EABootedSimDevice *> *)allBootedDevices;
 + (NSArray <EASimDevice *> *)allDevices;
 

@@ -53,33 +53,6 @@
     return task.terminationStatus == 0;
 }
 
-+ (NSString *)_old_eadStringFromPipe:(NSPipe *)pipe withTimeout:(NSTimeInterval)timeout {
-    
-    dispatch_queue_t readQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-    dispatch_semaphore_t sem = dispatch_semaphore_create(0);
-    
-    __block NSData *readData = nil;
-    dispatch_async(readQueue, ^{
-        readData = [pipe.fileHandleForReading availableData];
-        dispatch_semaphore_signal(sem);
-    });
-    
-    dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(timeout * NSEC_PER_SEC)));
-    if (readData.length > 0) {
-        
-        NSString *output = [[NSString alloc] initWithData:readData encoding:NSUTF8StringEncoding];
-        
-        // Strip trailing newline
-        if ([output hasSuffix:@"\n"]) {
-            output = [output substringToIndex:(output.length - 1)];
-        }
-        
-        return output;
-    }
-    
-    return nil;
-}
-
 + (NSString * _Nullable)_readStringFromPipe:(NSPipe *)pipe withTimeout:(NSTimeInterval)timeout {
     __block NSData *readData = nil;
 

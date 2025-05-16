@@ -15,82 +15,6 @@
         dispatch_sync(dispatch_get_main_queue(), block); \
     }
 
-
-#import <libobjsee/tracer.h>
-#import <dlfcn.h>
-
-void event_handler(const tracer_event_t *event, void *context) {
-    // Handle or log the event here
-    // You can format it as JSON or colorized text, depending on tracer_format_options_t
-    printf("Traced event: class=%s, method=%s\n", event->class_name, event->method_name);
-    if (event->formatted_output) {
-        printf("%s", event->formatted_output);
-    }
-}
-
-static tracer_t *tracer = NULL;
-static tracer_format_options_t *format = NULL;
-
-void start_tracer(void) {
-    tracer_error_t *error = NULL;
-    tracer = tracer_create_with_error(&error);
-    if (tracer == NULL) {
-        if (error != NULL) {
-            printf("Error creating tracer: %s\n", error->message);
-            free_error(error);
-        }
-
-        return;
-    }
-    
-    format = malloc(sizeof(tracer_format_options_t));
-    if (format == NULL) {
-        printf("Failed to allocate memory for tracer format options\n");
-        tracer_cleanup(tracer);
-        return;
-    }
-    
-    // set options
-    format->include_formatted_trace = true;
-    
-    
-    
-//    tracer_format_options_t format = {
-//        .include_formatted_trace = true,
-//        .include_event_json = true,
-//        .output_as_json = true,
-//        .include_colors = true,
-//        .include_thread_id = true,
-//        .args = TRACER_ARG_FORMAT_NONE,
-//        .include_indents = true,
-//        .include_indent_separators = true,
-//        .variable_separator_spacing = false,
-//        .static_separator_spacing = 4,
-//        .indent_char = ".",
-//        .indent_separator_char = "|",
-//        .include_newline_in_formatted_trace = true
-//    };
-//    tracer_set_format_options(tracer, format);
-    
-//    Dl_info info;
-//    if (dladdr((void *)start_tracer, &info) && info.dli_fname) {
-//        printf("filtrering to image: %s\n", info.dli_fname);
-//        //        tracer_include_image(tracer, info.dli_fname);
-//    }
-//    
-////    tracer_include_class(tracer, "ViewController");
-//    
-//    tracer_set_output_handler(tracer, event_handler, NULL);
-//    //     tracer_set_output_stdout(tracer);
-//    
-//    if (tracer_start(tracer) != TRACER_SUCCESS) {
-//        printf("Failed to start tracer: %s\n", tracer_get_last_error(tracer));
-//        tracer_cleanup(tracer);
-//        return;
-//    }
-//    
-    printf("tracer started\n");
-}
 @interface ViewController () {
     NSArray *allSimDevices;
     BOOL showDemoData;
@@ -109,8 +33,6 @@ void start_tracer(void) {
         selectedDevice = nil;
         selectedDeviceIndex = -1;
     }
-    
-    start_tracer();
 
     return self;
 }

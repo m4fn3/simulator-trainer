@@ -34,10 +34,6 @@
 		};
 		5FC347232DC1CB1200572D7F /* Exceptions for "simulator-trainer" folder in "simulator-trainer" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			additionalCompilerFlagsByRelativePath = {
-				SimDevices/EASimDevice.m = "-fno-objc-arc";
-				UI/ViewController.m = "-fno-objc-arc";
-			};
 			membershipExceptions = (
 				"Supporting Files/bootstrap/CydiaSubstrate",
 				"Supporting Files/bootstrap/FLEX.dylib",
@@ -59,16 +55,6 @@
 				"Supporting Files/bootstrap/loader.dylib",
 			);
 		};
-		5FE773252DD45F0500F5F522 /* Exceptions for "simulator-trainer" folder in "Embed Frameworks" phase from "simulator-trainer" target */ = {
-			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
-			attributesByRelativePath = {
-				libobjsee.framework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
-			};
-			buildPhase = 5F7E9E1B2DD45C9C000F12BA /* Embed Frameworks */;
-			membershipExceptions = (
-				libobjsee.framework,
-			);
-		};
 /* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -85,7 +71,6 @@
 			exceptions = (
 				5FC347232DC1CB1200572D7F /* Exceptions for "simulator-trainer" folder in "simulator-trainer" target */,
 				5FC347252DC1CB1C00572D7F /* Exceptions for "simulator-trainer" folder in "Copy Bundle Resources" phase from "simulator-trainer" target */,
-				5FE773252DD45F0500F5F522 /* Exceptions for "simulator-trainer" folder in "Embed Frameworks" phase from "simulator-trainer" target */,
 			);
 			path = "simulator-trainer";
 			sourceTree = "<group>";

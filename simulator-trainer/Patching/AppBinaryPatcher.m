@@ -81,11 +81,5 @@
     return [lipoOutput containsString:@"arm64"] && [otoolOutput containsString:@"platform 7"];
 }
 
-//+ (BOOL)adhocSignBinary:(NSString *)binaryPath {
-//    NSArray *arguments = @[@"codesign", @"-f", @"-s", @"-", binaryPath];
-//    NSString *signOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:arguments];
-//    return signOutput && ![signOutput containsString:@"fail"];
-//}
-
 @end
 
