@@ -47,7 +47,7 @@
     _devicePopup.action = @selector(popupListDidSelectDevice:);
     
     _pwnButton.target = self;
-    _pwnButton.action = @selector(handleDoJailbreakSelected::);
+    _pwnButton.action = @selector(handleDoJailbreakSelected:);
     
     _removeJailbreakButton.target = self;
     _removeJailbreakButton.action = @selector(handleRemoveJailbreakSelected:);
@@ -131,7 +131,6 @@
         }
     }
     else {
-        NSLog(@"Invalid or missing index for device selection");
         [_devicePopup selectItemAtIndex:0];
     }
 
@@ -323,7 +322,7 @@
     [self setStatus:@"Shutting down device"];
 
     EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
-    [bootedSim shutdown];
+    [bootedSim shutdownWithCompletion:nil];
 }
 
 

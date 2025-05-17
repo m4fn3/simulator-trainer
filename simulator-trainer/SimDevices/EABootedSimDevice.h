@@ -29,7 +29,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)jailbreak;
 - (BOOL)isJailbroken;
 
-- (void)shutdown;
+- (void)shutdownWithCompletion:(void (^)(NSError *error))completion;
 - (void)reboot;
 
 @end

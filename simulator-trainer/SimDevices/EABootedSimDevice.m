@@ -300,40 +300,43 @@
         return;
     }
     
+    // Unjailbreaking is done by unmounting the tmpfs overlays and rebooting the simulator
     [self _performBlockOnCommandQueue:^{
-        // To unjailbreak, the overlays are unmounted and the device is rebooted.
-        // Start the reboot. This needs to happen before unmounting otherwise macOS will kernel panic
-        self.pendingReboot = YES;
-        [self shutdown];
-        
-        // Unmount the tmpfs overlays
-        if ([self hasOverlays]) {
-            [self unmountNow];
-        }
-        
-        // Now wait for the device to come back in an unjailbroken state
-        BOOL removedJailbreak = NO;
-        for (int i = 0; i < 10; i++) {
-            [self reloadDeviceState];
-            
-            removedJailbreak = self.isBooted && [self isJailbroken] == NO;
-            if (removedJailbreak) {
-                // The device booted and is no longer jailbroken
-                break;
+        // The sim has to be fully-shutdown before unmounting, otherwise macOS will kernel panic
+        [self shutdownWithCompletion:^(NSError * _Nonnull error) {
+            if (error) {
+                NSLog(@"Failed to shutdown device for unjailbreak %@ with error: %@", self, error);
+                return;
             }
             
-            [NSThread sleepForTimeInterval:1.0];
-        }
-        
-        // Don't continue with the reboot if the jailbreak failed to be removed
-        if (!removedJailbreak) {
-            NSLog(@"Failed to unjailbreak simulator: %@", self);
-            self.pendingReboot = NO;
-            return;
-        }
-        
-        // The simulator will now boot to the original state
-        [self boot];
+            // Unmount the overlays now that the device is shutdown
+            if ([self hasOverlays]) {
+                [self unmountNow];
+            }
+            
+            // Confirm the device is not booted, and that jailbreak overlays are not mounted
+            BOOL removedJailbreak = NO;
+            for (int i = 0; i < 10; i++) {
+                [self reloadDeviceState];
+                
+                removedJailbreak = self.isBooted == NO && [self hasOverlays] == NO && [self hasInjection] == NO;
+                if (removedJailbreak) {
+                    // The device booted and is no longer jailbroken
+                    break;
+                }
+                
+                [NSThread sleepForTimeInterval:1.0];
+            }
+            
+            // Don't continue with the reboot if the jailbreak failed to be removed
+            if (!removedJailbreak) {
+                NSLog(@"Failed to unjailbreak simulator: %@", self);
+                return;
+            }
+            
+            // Success. Sim will boot into its original state
+            [self boot];
+        }];
     }];
 }
 
@@ -368,7 +371,7 @@
     }];
 }
 
-- (void)shutdown {
+- (void)shutdownWithCompletion:(void (^)(NSError *error))completion {
     if (!self.isBooted) {
         [self reloadDeviceState];
         if (!self.isBooted) {
@@ -407,6 +410,10 @@
                 [self.delegate deviceDidShutdown:self];
             }
         }
+        
+        if (completion) {
+            completion(error);
+        }
     });
 }
 
@@ -422,7 +429,7 @@
     }
     
     self.pendingReboot = YES;
-    [self shutdown];
+    [self shutdownWithCompletion:nil];
 }
 
 - (BOOL)isJailbroken {
