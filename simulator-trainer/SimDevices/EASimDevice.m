@@ -23,6 +23,7 @@ const NSString *kSimLogIgnoreStrings[] = {
     @"Found duplicate SDKs for",
     @" New device pair (",
     @"Runtime bundle found. Adding to supported runtimes",
+    @"VolumeManager: Disk Appeared <DADisk ",
 };
 
 static void _SimServiceLog(int level, const char *function, int line, NSString *format, va_list args) {
@@ -50,7 +51,6 @@ static void setup_logging(void) {
     void *coreSimHandle = dlopen("/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/CoreSimulator", RTLD_GLOBAL);
     void *_SimLogSetHandler = dlsym(coreSimHandle, "SimLogSetHandler");
     if (_SimLogSetHandler == NULL) {
-        NSLog(@"Failed to find SimLogSetHandler function");
         return;
     }
     
@@ -186,14 +186,18 @@ static void setup_logging(void) {
     
     if (self.isBooted) {
         [self reloadDeviceState];
-        
+
         if (self.isBooted) {
+
+            NSError *error = [NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is already booted"}];
+            if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
+                [self.delegate device:self didFailToBootWithError:error];
+            }
+
             if (completion) {
-                completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is already booted"}]);
+                completion(error);
             }
-            else {
-                NSLog(@"Device is already booted: %@", self);
-            }
+
             return;
         }
     }
@@ -206,31 +210,47 @@ static void setup_logging(void) {
     
     // Options: deathPort, persist, env, disabled_jobs, binpref, runtime, device_type
     NSDictionary *options = @{};
-    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, dispatch_get_main_queue(), ^(NSError *error) {
+    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, _commandQueue, ^(NSError *error) {
         if (error) {
             NSLog(@"Boot failed with error: %@", error);
+            if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
+                [self.delegate device:self didFailToBootWithError:error];
+            }
+            
             if (completion) {
                 completion(error);
             }
+            
             return;
         }
         
-        NSError *cmdError = nil;
-        NSString *cmdOutput = nil;
-        [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
-        if (cmdError) {
-            NSLog(@"Simulator failed to open: %@", cmdError);
-            if (completion) {
-                completion(cmdError);
-            }
-            return;
-        }
+//        [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"boot", self.udidString]];
         
+//        NSError *cmdError = nil;
+//        NSString *cmdOutput = nil;
+//        [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
+        [[EAXCRun sharedInstance] _runCommandAsUnprivilegedUser:@[@"/usr/bin/open", @"-a", @"Simulator"] environment:nil waitUntilExit:YES];
+//        
+////        if (cmdError) {
+////            NSLog(@"Simulator failed to open: %@", cmdError);
+//            
+//            if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
+//                [self.delegate device:self didFailToBootWithError:cmdError];
+//            }
+//            
+//            if (completion) {
+//                completion(cmdError);
+//            }
+//            
+//            
+////            return;
+////        }
+//        
         [self reloadDeviceState];
         
         // Done booting (or failed to boot)
         // Notify the delegate if needed
-        if (self.delegate) {
+        if (self.delegate || completion) {
             
             // If this was a reboot, reset the pendingReboot flag and notify the delegate.
             if (bootingForReboot) {

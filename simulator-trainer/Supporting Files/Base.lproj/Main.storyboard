@@ -937,7 +937,7 @@
                         <outlet property="installIPAButton" destination="9OG-HT-Z6H" id="aqh-OA-Zdr"/>
                         <outlet property="installTweakButton" destination="cUi-HB-qTp" id="zCc-tt-wAC"/>
                         <outlet property="installedTable" destination="fiI-sv-5O2" id="jdh-TM-BEV"/>
-                        <outlet property="pwnButton" destination="uiX-qL-Esm" id="n2e-xr-Sfx"/>
+                        <outlet property="jailbreakButton" destination="uiX-qL-Esm" id="n2e-xr-Sfx"/>
                         <outlet property="rebootButton" destination="gwh-b7-7Ve" id="wZn-lC-ZOt"/>
                         <outlet property="removeJailbreakButton" destination="xs4-my-eQr" id="6UD-3h-i8m"/>
                         <outlet property="respringButton" destination="fJQ-AO-gXb" id="KtM-L2-EBg"/>

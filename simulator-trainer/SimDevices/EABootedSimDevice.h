@@ -15,7 +15,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL pendingReboot;
 
 + (EABootedSimDevice * _Nullable)fromSimDevice:(EASimDevice * _Nonnull)simDevice;
-+ (NSArray <EASimDevice *> *)allDevices;
++ (NSArray <id> * _Nullable)coreSimulatorDevices;
++ (NSArray <EASimDevice *> * _Nonnull)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
 - (BOOL)prepareJbFilesystem;

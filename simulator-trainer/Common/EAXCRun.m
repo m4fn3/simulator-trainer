@@ -7,6 +7,7 @@
 
 #import "EAXCRun.h"
 #import <objc/message.h>
+#import "EABootedSimDevice.h"
 #import "AppBinaryPatcher.h"
 
 @interface EAXCRun ()
@@ -28,6 +29,42 @@
     return [self _runXCRunCommand:arguments environment:nil waitUntilExit:YES];
 }
 
+- (NSString *)_runCommandAsUnprivilegedUser:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> *)customEnvironment waitUntilExit:(BOOL)waitUntilExit {
+    NSPipe *outputPipe = [NSPipe pipe];
+    NSFileHandle *outputHandle = outputPipe.fileHandleForReading;
+    
+    NSDictionary *environDict = [[NSProcessInfo processInfo] environment];
+    
+    NSTask *task = [[NSTask alloc] init];
+    task.launchPath = @"/usr/bin/su";
+    task.arguments = @[
+        @"-m",
+        environDict[@"USER"],
+        @"-c",
+        [arguments componentsJoinedByString:@" "],
+    ];
+    
+    task.standardOutput = outputPipe;
+    task.standardError = outputPipe;
+    if (customEnvironment) {
+        NSMutableDictionary *mutableEnvironDict = [NSMutableDictionary dictionaryWithDictionary:environDict];
+        [mutableEnvironDict addEntriesFromDictionary:customEnvironment];
+        environDict = mutableEnvironDict;
+    }
+    NSLog(@"Using environment: %@", environDict);
+    task.environment = environDict;
+    
+    [task launch];
+    if (waitUntilExit) {
+        [task waitUntilExit];
+        
+        NSData *outputData = [outputHandle readDataToEndOfFile];
+        return [[NSString alloc] initWithData:outputData encoding:NSUTF8StringEncoding];
+    }
+    
+    return nil;
+}
+    
 - (NSString *)_runXCRunCommand:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> *)customEnvironment waitUntilExit:(BOOL)waitUntilExit {
     NSPipe *outputPipe = [NSPipe pipe];
     NSFileHandle *outputHandle = outputPipe.fileHandleForReading;
@@ -51,6 +88,7 @@
         [mutableEnvironDict addEntriesFromDictionary:customEnvironment];
         environDict = mutableEnvironDict;
     }
+    NSLog(@"Using environment: %@", environDict);
     ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setEnvironment:"), environDict);
 
     ((void (*)(id, SEL))objc_msgSend)(task, NSSelectorFromString(@"launch"));
@@ -102,7 +140,7 @@
 }
 
 - (NSDictionary *)simDeviceInfoForUDID:(NSString *)targetUdid{
-    NSArray *coreSimDevices = [self simDeviceInfosOnlyBooted:NO];
+    NSArray *coreSimDevices = [EABootedSimDevice coreSimulatorDevices];
     for (int i = 0; i < coreSimDevices.count; i++) {
         NSDictionary *coreSimDevice = coreSimDevices[i];
         NSString *deviceUdid = [((NSUUID * (*)(id, SEL))objc_msgSend)(coreSimDevice, NSSelectorFromString(@"UDID")) UUIDString];

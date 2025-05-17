@@ -22,6 +22,8 @@
     
     NSPipe *errorPipe = [NSPipe pipe];
     task.standardError = errorPipe;
+    task.environment = [[NSProcessInfo processInfo] environment];
+    task.launchPath = command;
 
     [task launch];
     [task waitUntilExit];

@@ -16,7 +16,7 @@
 @property (nonatomic, weak) IBOutlet NSTableView *installedTable;
 @property (nonatomic, weak) IBOutlet NSButton *respringButton;
 @property (nonatomic, weak) IBOutlet NSButton *rebootButton;
-@property (nonatomic, weak) IBOutlet NSButton *pwnButton;
+@property (nonatomic, weak) IBOutlet NSButton *jailbreakButton;
 @property (nonatomic, weak) IBOutlet NSButton *removeJailbreakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installTweakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installIPAButton;

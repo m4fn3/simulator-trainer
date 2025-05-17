@@ -46,8 +46,8 @@
     _devicePopup.target = self;
     _devicePopup.action = @selector(popupListDidSelectDevice:);
     
-    _pwnButton.target = self;
-    _pwnButton.action = @selector(handleDoJailbreakSelected:);
+    _jailbreakButton.target = self;
+    _jailbreakButton.action = @selector(handleDoJailbreakSelected:);
     
     _removeJailbreakButton.target = self;
     _removeJailbreakButton.action = @selector(handleRemoveJailbreakSelected:);
@@ -217,7 +217,7 @@
         }
         else {
             // Device is not jailbroken
-            _pwnButton.enabled = YES;
+            _jailbreakButton.enabled = YES;
             _installIPAButton.enabled = YES;
             _statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
             _tweakStatus.stringValue = @"Simulator not jailbroken";
@@ -340,7 +340,7 @@
 }
 
 - (void)disableDeviceButtons {
-    _pwnButton.enabled = NO;
+    _jailbreakButton.enabled = NO;
     _removeJailbreakButton.enabled = NO;
     _rebootButton.enabled = NO;
     _respringButton.enabled = NO;
@@ -367,8 +367,8 @@
         return;
     }
 
-    _pwnButton.enabled = NO;
-//    _statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
+    _jailbreakButton.enabled = NO;
+    _statusImageView.image = [NSImage imageNamed:@"progress.indicator"];
 
     [self setStatus:@"Jailbreaking device..."];
     
@@ -393,7 +393,7 @@
     }
 
     _removeJailbreakButton.enabled = NO;
-    _pwnButton.enabled = NO;
+    _jailbreakButton.enabled = NO;
 //    _statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
     
     [bootedSim unjailbreak];
@@ -474,16 +474,17 @@
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
         if (error) {
-            weakSelf.pwnButton.enabled = YES;
+            weakSelf.jailbreakButton.enabled = YES;
             NSLog(@"Failed to jailbreak device with error: %@", error);
-            [self setStatus:@"Failed to jailbreak device"];
+            [self setStatus:@"Failed to jailbreak sim device"];
         }
         else if (success) {
-            weakSelf.pwnButton.enabled = NO;
-            [self setStatus:@"Device jailbroken"];
+            weakSelf.jailbreakButton.enabled = NO;
+            weakSelf.removeJailbreakButton.enabled = YES;
+            [self setStatus:@"Sim device is jailbroken"];
         }
         
-        [self refreshDeviceList];
+        [self _updateSelectedDeviceUI];
     });
 }
 
