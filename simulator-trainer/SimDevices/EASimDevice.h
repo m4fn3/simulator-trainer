@@ -32,16 +32,16 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)_performBlockOnCommandQueue:(dispatch_block_t)block;
 
-- (NSString *)displayString;
-- (NSString *)udidString;
-- (NSString *)runtimeRoot;
-- (NSString *)dataRoot;
-- (NSString *)name;
-- (NSString *)runtimeVersion;
-- (NSString *)platform;
+- (NSString * _Nonnull)displayString;
+- (NSString * _Nullable)udidString;
+- (NSString * _Nullable)runtimeRoot;
+- (NSString * _Nonnull)name;
+- (NSString * _Nullable)runtimeVersion;
+- (NSString * _Nullable)platform;
 
 - (void)reloadDeviceState;
-- (void)boot;
+
+- (void)bootWithCompletion:(void (^ _Nullable)(NSError * _Nullable error))completion;
 
 @end
 

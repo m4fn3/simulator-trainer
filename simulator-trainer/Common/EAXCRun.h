@@ -13,13 +13,12 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (instancetype)sharedInstance;
 
-- (NSString *)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments;
-- (NSString *)_runXCRunCommand:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> * _Nullable)environment waitUntilExit:(BOOL)waitUntilExit;
-- (NSArray<NSDictionary *> *)simDeviceRuntimes;
-- (NSDictionary *)detailsForSimRuntimeWithdentifier:(NSString *)simruntimeIdentifier;
-- (NSDictionary *)simDeviceInfoForUDID:(NSString *)udid;
+- (NSString * _Nullable)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments;
+- (NSArray <id>  * _Nullable)simDeviceRuntimes;
+- (NSDictionary * _Nullable )detailsForSimRuntimeWithdentifier:(NSString *)simruntimeIdentifier;
+- (NSDictionary * _Nullable)simDeviceInfoForUDID:(NSString *)udid;
 
-- (NSArray <NSDictionary *> *)simDeviceInfosOnlyBooted:(BOOL)onlyBooted;
+- (NSArray <NSDictionary *> * _Nullable)simDeviceInfosOnlyBooted:(BOOL)onlyBooted;
 - (BOOL)launchAppWithInjectedDylibs:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
 - (BOOL)_launchAppOnSimulator:(NSString *)simulatorUDID appBundleId:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
 

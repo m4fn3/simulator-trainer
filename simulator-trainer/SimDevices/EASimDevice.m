@@ -5,110 +5,68 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
-#import "EASimDevice.h"
-#import "EAXCRun.h"
-#import "CommandRunner.h"
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import <dlfcn.h>
+#import "CommandRunner.h"
+#import "EASimDevice.h"
+#import "EAXCRun.h"
+
+// Filter out some of the spammy Simulator logs
+const NSString *kSimLogIgnoreStrings[] = {
+    @" is handling device added notification: ",
+    @"-[SimDeviceSet addDeviceAsync:]:",
+    @"On devices queue adding device",
+    @" to _devicesByUDID for set ",
+    @"VolumeManager: Appeared: Ignoring",
+    @"Ignoring disk due to missing volume path.",
+    @"Found duplicate SDKs for",
+    @" New device pair (",
+    @"Runtime bundle found. Adding to supported runtimes",
+};
+
+static void _SimServiceLog(int level, const char *function, int line, NSString *format, va_list args) {
+    if (!format) {
+        return;
+    }
+
+    NSString *formattedString = [[NSString alloc] initWithFormat:format arguments:args];
+    if (formattedString) {
+        NSString *logString = [NSString stringWithFormat:@"%s:%d %@", function, line, formattedString];
+        // Check if the log message contains any of the ignore strings.
+        // This happens after building the message because some of the ignore-strings include function names
+        for (int i = 0; i < sizeof(kSimLogIgnoreStrings) / sizeof(NSString *); i++) {
+            if ([logString containsString:(NSString *)kSimLogIgnoreStrings[i]]) {
+                return;
+            }
+        }
+        
+        NSLog(@"%@", logString);
+    }
+}
+
+static void setup_logging(void) {
+    // Register a logging handler for the Simulator. This will receive all logs regardless of their level
+    void *coreSimHandle = dlopen("/Library/Developer/PrivateFrameworks/CoreSimulator.framework/Versions/A/CoreSimulator", RTLD_GLOBAL);
+    void *_SimLogSetHandler = dlsym(coreSimHandle, "SimLogSetHandler");
+    if (_SimLogSetHandler == NULL) {
+        NSLog(@"Failed to find SimLogSetHandler function");
+        return;
+    }
+    
+    ((void (*)(void *))_SimLogSetHandler)(_SimServiceLog);
+}
 
 @interface EASimDevice () {
     dispatch_queue_t _commandQueue;
 }
 @end
 
-static NSString *objcTypeToReadable(const char *type) {
-    NSString *typeStr = [NSString stringWithUTF8String:type];
-    if ([typeStr hasPrefix:@"@\""]) {
-        typeStr = [typeStr substringWithRange:NSMakeRange(2, typeStr.length - 3)];
-        return [NSString stringWithFormat:@"%@ *", typeStr];
-    } else if ([typeStr isEqualToString:@"q"] || [typeStr isEqualToString:@"Q"]) {
-        return @"NSInteger";
-    } else if ([typeStr isEqualToString:@"i"] || [typeStr isEqualToString:@"I"]) {
-        return @"int";
-    } else if ([typeStr isEqualToString:@"f"]) {
-        return @"float";
-    } else if ([typeStr isEqualToString:@"d"]) {
-        return @"double";
-    } else if ([typeStr isEqualToString:@"B"]) {
-        return @"BOOL";
-    } else if ([typeStr hasPrefix:@"^"]) {
-        return [NSString stringWithFormat:@"%@", typeStr];
-    }
-    return typeStr;
-}
-
-static void printObjcHeaderForObject(id obj) {
-    Class cls = [obj class];
-    printf("@interface %s : %s {\n", class_getName(cls), class_getName(class_getSuperclass(cls)));
-
-    unsigned int ivarCount = 0;
-    Ivar *ivars = class_copyIvarList(cls, &ivarCount);
-    for (unsigned int i = 0; i < ivarCount; i++) {
-        Ivar ivar = ivars[i];
-        const char *name = ivar_getName(ivar);
-        const char *type = ivar_getTypeEncoding(ivar);
-        NSString *ivarTypeStr = objcTypeToReadable(type);
-        @try {
-            id value = [obj valueForKey:[NSString stringWithUTF8String:name]];
-            NSString *valueDesc = [value description];
-            valueDesc = [valueDesc stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
-            printf("    %s %s; // %s\n", ivarTypeStr.UTF8String, name, valueDesc.UTF8String);
-        }
-        @catch (NSException *e) {
-            printf("    %s %s; // (inaccessible)\n", ivarTypeStr.UTF8String, name);
-        }
-    }
-    free(ivars);
-
-    printf("}\n\n");
-
-    unsigned int propertyCount = 0;
-    objc_property_t *properties = class_copyPropertyList(cls, &propertyCount);
-    for (unsigned int i = 0; i < propertyCount; i++) {
-        objc_property_t property = properties[i];
-        const char *name = property_getName(property);
-        const char *attributes = property_getAttributes(property);
-
-        NSArray *attrParts = [[NSString stringWithUTF8String:attributes] componentsSeparatedByString:@","];
-        NSString *typePart = attrParts.firstObject;
-        NSString *propertyTypeStr = objcTypeToReadable(typePart.UTF8String + 1);
-
-        @try {
-            id value = [obj valueForKey:[NSString stringWithUTF8String:name]];
-            NSString *valueDesc = [value description];
-            valueDesc = [valueDesc stringByReplacingOccurrencesOfString:@"\n" withString:@" "];
-            printf("@property %s %s; // %s\n", propertyTypeStr.UTF8String, name, valueDesc.UTF8String);
-        }
-        @catch (NSException *e) {
-            printf("@property %s %s; // (inaccessible)\n", propertyTypeStr.UTF8String, name);
-        }
-    }
-    free(properties);
-
-    printf("\n");
-
-    unsigned int instanceMethodCount = 0;
-    Method *instanceMethods = class_copyMethodList(cls, &instanceMethodCount);
-    for (unsigned int i = 0; i < instanceMethodCount; i++) {
-        Method method = instanceMethods[i];
-        SEL selector = method_getName(method);
-        printf("- (void)%s;\n", sel_getName(selector));
-    }
-    free(instanceMethods);
-
-    unsigned int classMethodCount = 0;
-    Method *classMethods = class_copyMethodList(object_getClass(cls), &classMethodCount);
-    for (unsigned int i = 0; i < classMethodCount; i++) {
-        Method method = classMethods[i];
-        SEL selector = method_getName(method);
-        printf("+ (void)%s;\n", sel_getName(selector));
-    }
-    free(classMethods);
-
-    printf("\n@end\n");
-}
-
 @implementation EASimDevice
+
++ (void)load {
+    setup_logging();
+}
 
 - (instancetype)initWithCoreSimDevice:(id)coreSimDevice {
     if (!coreSimDevice) {
@@ -170,16 +128,17 @@ static void printObjcHeaderForObject(id obj) {
     return ((id (*)(id, SEL))objc_msgSend)(runtime, NSSelectorFromString(@"root"));
 }
 
-- (NSString *)dataRoot {
-    return [self.coreSimDevice valueForKey:@"dataPath"];
-}
-
 - (NSString *)name {
     return ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"name"));
 }
 
 - (NSString *)runtimeVersion {
     NSDictionary *runtime = [self.coreSimDevice valueForKey:@"runtime"];
+    if (!runtime) {
+        NSLog(@"-runtimeVersion: Failed to get runtime for device: %@", self);
+        return nil;
+    }
+
     return [runtime valueForKey:@"version"];
 }
 
@@ -214,9 +173,14 @@ static void printObjcHeaderForObject(id obj) {
     });
 }
 
-- (void)boot {
+- (void)bootWithCompletion:(void (^ _Nullable)(NSError * _Nullable error))completion {
     if (!self.coreSimDevice) {
-        NSLog(@"Attempted to boot device with nil coreSimDevice");
+        if (completion) {
+            completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"coreSimDevice is nil"}]);
+        }
+        else {
+            NSLog(@"Attempted to boot device with nil coreSimDevice: %@", self);
+        }
         return;
     }
     
@@ -224,7 +188,12 @@ static void printObjcHeaderForObject(id obj) {
         [self reloadDeviceState];
         
         if (self.isBooted) {
-            NSLog(@"Device is already booted: %@", self);
+            if (completion) {
+                completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is already booted"}]);
+            }
+            else {
+                NSLog(@"Device is already booted: %@", self);
+            }
             return;
         }
     }
@@ -237,16 +206,23 @@ static void printObjcHeaderForObject(id obj) {
     
     // Options: deathPort, persist, env, disabled_jobs, binpref, runtime, device_type
     NSDictionary *options = @{};
-    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, _commandQueue, ^(NSError *error) {
+    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, dispatch_get_main_queue(), ^(NSError *error) {
         if (error) {
             NSLog(@"Boot failed with error: %@", error);
+            if (completion) {
+                completion(error);
+            }
             return;
         }
         
         NSError *cmdError = nil;
-        [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:nil error:&cmdError];
+        NSString *cmdOutput = nil;
+        [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
         if (cmdError) {
             NSLog(@"Simulator failed to open: %@", cmdError);
+            if (completion) {
+                completion(cmdError);
+            }
             return;
         }
         
@@ -256,7 +232,7 @@ static void printObjcHeaderForObject(id obj) {
         // Notify the delegate if needed
         if (self.delegate) {
             
-            // If this was a reboot, reset the pendingReboot flag and notify the delegate
+            // If this was a reboot, reset the pendingReboot flag and notify the delegate.
             if (bootingForReboot) {
                 [self setValue:@(NO) forKey:@"pendingReboot"];
                 
@@ -267,14 +243,24 @@ static void printObjcHeaderForObject(id obj) {
                 return;
             }
             
-            // Normal boot or failure
             if (self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidBoot:)]) {
+                // Device is booted
                 EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
                 [self.delegate deviceDidBoot:bootedDevice];
             }
             else if (!self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
+                // No errors were raised, but the device remains unbooted
                 [self.delegate device:self didFailToBootWithError:[NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]];
             }
+        }
+        
+        if (completion && self.isBooted) {
+            // Device is booted
+            completion(nil);
+        }
+        else if (completion && !self.isBooted) {
+            // No errors were raised, but the device remains unbooted
+            completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]);
         }
     });
 }

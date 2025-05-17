@@ -5,8 +5,8 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
-#import "ViewController.h"
 #import "EABootedSimDevice.h"
+#import "ViewController.h"
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -90,15 +90,8 @@
 
 - (void)_populateDevicePopup {    
     // Purge the device selection list, then rebuild it using the devices currently in allSimDevices
-    NSArray *deviceList = self->allSimDevices;
-    
-    // Before clearing the list, record the location of whatever is currently selected (if anything)
-    NSInteger selectedIndex = -1;
-    if (self->selectedDevice) {
-        selectedIndex = [deviceList indexOfObject:self->selectedDevice];
-    }
-    
     [_devicePopup removeAllItems];
+    NSArray *deviceList = self->allSimDevices;
     
     // If no devices were found
     if (deviceList.count == 0) {
@@ -305,7 +298,7 @@
     }
     
     [self setStatus:@"Booting device"];
-    [self->selectedDevice boot];
+    [self->selectedDevice bootWithCompletion:nil];
 }
 
 - (void)handleShutdownSelected:(NSButton *)sender {

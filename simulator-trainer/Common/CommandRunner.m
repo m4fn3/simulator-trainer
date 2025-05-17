@@ -27,10 +27,14 @@
     [task waitUntilExit];
     
     NSString *stdErrString = [CommandRunner _readStringFromPipe:errorPipe withTimeout:5.0];
-    if (stdoutString != nil && outputPipe != nil) {
-        *stdoutString = [CommandRunner _readStringFromPipe:outputPipe withTimeout:5.0];
+    NSString *commandOutput = nil;
+    if (outputPipe != nil) {
+        commandOutput = [CommandRunner _readStringFromPipe:outputPipe withTimeout:5.0];
+        if (stdoutString != nil) {
+            *stdoutString = commandOutput;
+        }
     }
-    
+
     [[errorPipe fileHandleForReading] closeFile];
     if (outputPipe) {
         [[outputPipe fileHandleForReading] closeFile];
@@ -44,7 +48,7 @@
                 @"CommandPath": command,
                 @"Arguments": arguments ?: @[],
                 @"TerminationStatus": @(task.terminationStatus),
-                @"CommandOutput": *stdoutString ?: @"",
+                @"CommandOutput": commandOutput ?: @"",
                 @"CommandError": stdErrString ?: @""
             }],
         }];

@@ -9,6 +9,10 @@
 #import <objc/message.h>
 #import "AppBinaryPatcher.h"
 
+@interface EAXCRun ()
+- (NSString * _Nullable)_runXCRunCommand:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> * _Nullable)environment waitUntilExit:(BOOL)waitUntilExit;
+@end
+
 @implementation EAXCRun
 
 + (instancetype)sharedInstance {
@@ -60,7 +64,7 @@
     return nil;
 }
 
-- (NSArray<NSDictionary *> *)simDeviceRuntimes {
+- (NSArray <NSDictionary *> *)simDeviceRuntimes {
     NSLog(@"fetching simulator runtimes...");
     NSArray *arguments = @[@"simctl", @"list", @"--json", @"-e", @"runtimes"];
 
@@ -81,7 +85,13 @@
 }
     
 - (NSDictionary *)detailsForSimRuntimeWithdentifier:(NSString *)simruntimeIdentifier {
-    for (NSDictionary *runtimeInfo in [self simDeviceRuntimes]) {
+    NSArray *simDeviceRuntimes = [self simDeviceRuntimes];
+    if (!simDeviceRuntimes.count) {
+        NSLog(@"Cannot fetch device %@, no runtimes available", simruntimeIdentifier);
+        return nil;
+    }
+
+    for (NSDictionary *runtimeInfo in simDeviceRuntimes) {
         NSString *runtimeIdent = [runtimeInfo valueForKey:@"identifier"];
         if (runtimeIdent && [runtimeIdent isEqualToString:simruntimeIdentifier]) {
             return runtimeInfo;
@@ -142,7 +152,7 @@
     return YES;
 }
 
-- (nonnull NSArray<id> *)simDeviceInfosOnlyBooted:(BOOL)onlyBooted {
+- (NSArray<id> *)simDeviceInfosOnlyBooted:(BOOL)onlyBooted {
     NSError *err;
     Class SimServiceContext = objc_getClass("SimServiceContext");
     id serviceContext = ((id (*)(id, SEL, id, NSError **))objc_msgSend)(SimServiceContext, sel_registerName("sharedServiceContextForDeveloperDir:error:"), @"/Applications/Xcode.app/Contents/Developer", &err);

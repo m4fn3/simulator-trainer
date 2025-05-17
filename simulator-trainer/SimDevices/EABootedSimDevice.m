@@ -32,56 +32,69 @@
     return [[EABootedSimDevice alloc] initWithCoreSimDevice:simDevice.coreSimDevice];
 }
 
-+ (NSArray <EABootedSimDevice *> *)allBootedDevices {
-    NSError *err;
-    Class SimServiceContext = objc_getClass("SimServiceContext");
-    id serviceContext = ((id (*)(id, SEL, id, NSError **))objc_msgSend)(SimServiceContext, sel_registerName("sharedServiceContextForDeveloperDir:error:"), @"/Applications/Xcode.app/Contents/Developer", &err);
-    id deviceSet = ((id (*)(id, SEL, NSError **))objc_msgSend)(serviceContext, sel_registerName("defaultDeviceSetWithError:"), &err);
-    if (err) {
-        NSLog(@"failed to get deviceset using shared service context");
++ (NSArray <id> *)coreSimulatorDevices {
+    Class _SimServiceContext = objc_getClass("SimServiceContext");
+    SEL _sharedServiceContextForDeveloperDir = sel_registerName("sharedServiceContextForDeveloperDir:error:");
+    if (_SimServiceContext == NULL) {
+        NSLog(@"CoreSimulator framework issue. SimServiceContext not found");
         return nil;
     }
     
-    NSMutableArray *devices = [[NSMutableArray alloc] init];
-    for (id device in ((id (*)(id, SEL))objc_msgSend)(deviceSet, sel_registerName("devices"))) {
-        NSString *state = ((id (*)(id, SEL))objc_msgSend)(device, sel_registerName("stateString"));
-        if (![state isEqualToString:@"Booted"]) {
-            continue;
-        }
-        
-        EABootedSimDevice *simdev = [[EABootedSimDevice alloc] initWithCoreSimDevice:device];
-        if (simdev) {
-            [devices addObject:simdev];
-        }
+    if (![_SimServiceContext respondsToSelector:_sharedServiceContextForDeveloperDir]) {
+        NSLog(@"Expected method -[SimServiceContext sharedServiceContextForDeveloperDir:error:] not found");
+        return nil;
     }
-
-    return devices;
+    
+    NSError *error = nil;
+    NSString *developerDir = @"/Applications/Xcode.app/Contents/Developer";
+    id simServiceContext = ((id (*)(id, SEL, id, NSError **))objc_msgSend)(_SimServiceContext, _sharedServiceContextForDeveloperDir, developerDir, &error);
+    if (error || !simServiceContext) {
+        NSLog(@"Failed to get SimServiceContext: %@", error);
+        return nil;
+    }
+    
+    SEL _defaultDeviceSet = sel_registerName("defaultDeviceSetWithError:");
+    if (![_SimServiceContext instancesRespondToSelector:_defaultDeviceSet]) {
+        NSLog(@"Expected method -[SimServiceContext defaultDeviceSetWithError:] not found");
+        return nil;
+    }
+    
+    id deviceSet = ((id (*)(id, SEL, NSError **))objc_msgSend)(simServiceContext, _defaultDeviceSet, &error);
+    if (error || !deviceSet) {
+        NSLog(@"Failed to get default device set: %@", error);
+        return nil;
+    }
+    
+    SEL _devices = sel_registerName("devices");
+    if (![deviceSet respondsToSelector:_devices]) {
+        NSLog(@"Expected method -[SimDeviceSet devices] not found");
+        return nil;
+    }
+    
+    return ((id (*)(id, SEL))objc_msgSend)(deviceSet, _devices);
 }
 
 + (NSArray <EASimDevice *> *)allDevices {
-    NSError *err;
-    Class SimServiceContext = objc_getClass("SimServiceContext");
-    id serviceContext = ((id (*)(id, SEL, id, NSError **))objc_msgSend)(SimServiceContext, sel_registerName("sharedServiceContextForDeveloperDir:error:"), @"/Applications/Xcode.app/Contents/Developer", &err);
-    id deviceSet = ((id (*)(id, SEL, NSError **))objc_msgSend)(serviceContext, sel_registerName("defaultDeviceSetWithError:"), &err);
-    if (err) {
-        NSLog(@"failed to get deviceset using shared service context");
-        return nil;
-    }
-    
-    NSMutableArray *devices = [[NSMutableArray alloc] init];
-    for (id device in ((id (*)(id, SEL))objc_msgSend)(deviceSet, sel_registerName("devices"))) {
-        id runtime = ((id (*)(id, SEL))objc_msgSend)(device, sel_registerName("runtime"));
-        if (!runtime) {
-            continue;
-        }
-        
-        EASimDevice *simdev = [[EASimDevice alloc] initWithCoreSimDevice:device];
-        if (simdev) {
-            [devices addObject:simdev];
+    NSMutableArray *wrappedDevices = [[NSMutableArray alloc] init];
+    NSArray *coreSimDevices = [self coreSimulatorDevices];
+    // For every device returned by CoreSimulator
+    if (coreSimDevices) {
+        for (id coreSimDevice in coreSimDevices) {
+           // Grab its SimRuntime object
+            id runtime = ((id (*)(id, SEL))objc_msgSend)(coreSimDevice, sel_registerName("runtime"));
+            if (!runtime) {
+                continue;
+            }
+            
+            // And use the SimRuntime to build a helper wrapper object
+            EASimDevice *simdev = [[EASimDevice alloc] initWithCoreSimDevice:coreSimDevice];
+            if (simdev) {
+                [wrappedDevices addObject:simdev];
+            }
         }
     }
     
-    return devices;
+    return wrappedDevices;
 }
 
 - (instancetype)initWithCoreSimDevice:(NSDictionary *)coreSimDevice {
@@ -335,7 +348,7 @@
             }
             
             // Success. Sim will boot into its original state
-            [self boot];
+            [self bootWithCompletion:nil];
         }];
     }];
 }
@@ -397,7 +410,7 @@
         // Note: Reboots will not call the didShutdown: delegate method
         if (self.pendingReboot) {
             // -boot will cleanup the pendingReboot
-            [self boot];
+            [self bootWithCompletion:nil];
             return;
         }
         

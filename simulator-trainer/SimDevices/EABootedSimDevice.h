@@ -14,8 +14,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic) BOOL pendingReboot;
 
-+ (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice;
-+ (NSArray <EABootedSimDevice *> *)allBootedDevices;
++ (EABootedSimDevice * _Nullable)fromSimDevice:(EASimDevice * _Nonnull)simDevice;
 + (NSArray <EASimDevice *> *)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
@@ -24,12 +23,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
 - (BOOL)setupInjection;
-- (NSString *)pathToLoaderDylib;
+- (NSString * _Nonnull)pathToLoaderDylib;
 - (void)unjailbreak;
 - (void)jailbreak;
 - (BOOL)isJailbroken;
 
-- (void)shutdownWithCompletion:(void (^)(NSError *error))completion;
+- (void)shutdownWithCompletion:(void (^ _Nullable)(NSError *error))completion;
 - (void)reboot;
 
 @end
