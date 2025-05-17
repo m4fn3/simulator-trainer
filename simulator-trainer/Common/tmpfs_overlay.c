@@ -52,7 +52,7 @@ int commit_overlay_changes(const char *overlay_path) {
     }
     
     if (!is_tmpfs_mount(overlay_path)) {
-        fprintf(stderr, "Cannot commit %s: not a tmpfs overlay.\n", overlay_path);
+        fprintf(stderr, "Cannot commit %s: not a tmpfs overlay\n", overlay_path);
         return -1;
     }
     
@@ -86,12 +86,12 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     }
     
     if (is_tmpfs_mount(path)) {
-        fprintf(stdout, "Overlay already exists on %s. Nothing to do.\n", path);
+        fprintf(stdout, "Overlay already exists on %s. Nothing to do\n", path);
         return 0;
     }
     
     if (is_mount_point(path) && !is_tmpfs_mount(path)) {
-        fprintf(stderr, "Path %s is already a mount point. Cannot override.\n", path);
+        fprintf(stderr, "Path %s is already a mount point. Cannot override\n", path);
         return -1;
     }
     
@@ -102,10 +102,9 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     }
     
     if (!dir_exists_and_nonempty(store_path)) {
-        fprintf(stdout, "Backing store '%s' is empty, copying from '%s'...\n", store_path, path);
         kern_return_t ret = copy_dir_recursive(path, store_path);
         if (ret != 0) {
-            fprintf(stderr, "Failed initial copy to backing store.\n");
+            fprintf(stderr, "Failed initial copy to backing store\n");
             return ret;
         }
     }
@@ -128,7 +127,7 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     
     kern_return_t ret = symlink_contents_of_dir(store_path, path);
     if (ret != 0) {
-        fprintf(stderr, "Failed to symlink backing store contents.\n");
+        fprintf(stderr, "Failed to symlink backing store contents\n");
         if (unmount(path, MNT_FORCE) != 0) {
             fprintf(stderr, "Warning: Failed to unmount after error: %s\n", strerror(errno));
         }
@@ -142,10 +141,9 @@ kern_return_t create_or_remount_overlay_symlinks(const char *path) {
     strncpy(ov.backing_store, store_path, sizeof(ov.backing_store) - 1);
     ret = write_overlay_config(&ov);
     if (ret != 0) {
-        fprintf(stderr, "Warning: Failed to write overlay config, but overlay is mounted.\n");
+        fprintf(stderr, "Warning: Failed to write overlay config, but overlay is mounted\n");
     }
     
-    fprintf(stdout, "Overlay (symlink-based) created on '%s' with backing '%s'\n", path, store_path);
     return 0;
 }
 
@@ -183,7 +181,6 @@ bool is_mount_point(const char *path) {
 
 kern_return_t unmount_if_mounted(const char *path) {
     if (is_mount_point(path)) {
-        fprintf(stdout, "Unmounting existing filesystem at %s\n", path);
         if (unmount(path, MNT_FORCE) != 0) {
             fprintf(stderr, "Failed to unmount %s: %s\n", path, strerror(errno));
             return -1;

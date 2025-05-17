@@ -21,6 +21,7 @@
 @property (nonatomic, weak) IBOutlet NSButton *installTweakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installIPAButton;
 @property (nonatomic, weak) IBOutlet NSButton *bootButton;
+@property (nonatomic, weak) IBOutlet NSButton *shutdownButton;
 
 @end
 

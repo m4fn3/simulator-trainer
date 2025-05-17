@@ -16,7 +16,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)deviceDidBoot:(EASimDevice *)simDevice;
 - (void)deviceDidShutdown:(EASimDevice *)simDevice;
 - (void)deviceDidReboot:(EASimDevice *)simDevice;
-- (void)device:(EASimDevice *)simDevice didFailToBootWithError:(NSError *)error;
+- (void)device:(EASimDevice *)simDevice didFailToBootWithError:(NSError * _Nullable)error;
+- (void)device:(EASimDevice *)simDevice didFailToShutdownWithError:(NSError * _Nullable)error;
+- (void)device:(EASimDevice *)simDevice jailbreakFinished:(BOOL)success error:(NSError * _Nullable)error;
 
 @end
 
@@ -24,9 +26,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, weak) id<EASimDeviceDelegate> delegate;
 @property (nonatomic) BOOL isBooted;
-@property (nonatomic, assign) NSDictionary *coreSimDevice;
+@property (nonatomic, strong) id coreSimDevice;
 
-- (instancetype)initWithDict:(NSDictionary *)simInfoDict;
+- (instancetype)initWithCoreSimDevice:(id)coreSimDevice;
 
 - (void)_performBlockOnCommandQueue:(dispatch_block_t)block;
 

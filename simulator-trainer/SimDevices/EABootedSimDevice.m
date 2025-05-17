@@ -29,7 +29,7 @@
         return nil;
     }
     
-    return [[EABootedSimDevice alloc] initWithDict:simDevice.coreSimDevice];
+    return [[EABootedSimDevice alloc] initWithCoreSimDevice:simDevice.coreSimDevice];
 }
 
 + (NSArray <EABootedSimDevice *> *)allBootedDevices {
@@ -49,7 +49,7 @@
             continue;
         }
         
-        EABootedSimDevice *simdev = [[EABootedSimDevice alloc] initWithDict:device];
+        EABootedSimDevice *simdev = [[EABootedSimDevice alloc] initWithCoreSimDevice:device];
         if (simdev) {
             [devices addObject:simdev];
         }
@@ -70,7 +70,12 @@
     
     NSMutableArray *devices = [[NSMutableArray alloc] init];
     for (id device in ((id (*)(id, SEL))objc_msgSend)(deviceSet, sel_registerName("devices"))) {
-        EASimDevice *simdev = [[EASimDevice alloc] initWithDict:device];
+        id runtime = ((id (*)(id, SEL))objc_msgSend)(device, sel_registerName("runtime"));
+        if (!runtime) {
+            continue;
+        }
+        
+        EASimDevice *simdev = [[EASimDevice alloc] initWithCoreSimDevice:device];
         if (simdev) {
             [devices addObject:simdev];
         }
@@ -79,8 +84,8 @@
     return devices;
 }
 
-- (instancetype)initWithDict:(NSDictionary *)simInfoDict {
-    if ((self = [super initWithDict:simInfoDict])) {
+- (instancetype)initWithCoreSimDevice:(NSDictionary *)coreSimDevice {
+    if ((self = [super initWithCoreSimDevice:coreSimDevice])) {
         self.pendingReboot = NO;
     }
     
@@ -150,9 +155,6 @@
             [self unmountNow];
             return NO;
         }
-        
-        NSString *runtimeRelPath = [overlayPath stringByReplacingOccurrencesOfString:self.runtimeRoot withString:@""];
-        NSLog(@"Setup overlay at sim://%@", runtimeRelPath);
     }
     
     // mkdir:
@@ -258,18 +260,16 @@
     return [stdoutString containsString:[self pathToLoaderDylib]];
 }
 
-- (void)setupInjection {
+- (BOOL)setupInjection {
     NSString *simRelativeLoaderPath = [self pathToLoaderDylib];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:simRelativeLoaderPath]) {
-        
+    if (![[NSFileManager defaultManager] fileExistsAtPath:simRelativeLoaderPath]) {        
         NSString *loaderPath = [[NSBundle mainBundle] pathForResource:@"loader" ofType:@"dylib"];
-        NSLog(@"Using loader from %@", loaderPath);
         
         NSError *error = nil;
         [[NSFileManager defaultManager] copyItemAtPath:loaderPath toPath:simRelativeLoaderPath error:&error];
         if (error) {
             NSLog(@"Failed to copy loader into overlay: %@", error);
-            return;
+            return NO;
         }
         
         NSLog(@"Copied %@ to %@", loaderPath, simRelativeLoaderPath);
@@ -285,6 +285,8 @@
             [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
         }
     }];
+    
+    return YES;
 }
 
 - (NSString *)pathToLoaderDylib {
@@ -299,69 +301,113 @@
     }
     
     [self _performBlockOnCommandQueue:^{
-        // Treat this as a reboot
+        // To unjailbreak, the overlays are unmounted and the device is rebooted.
+        // Start the reboot. This needs to happen before unmounting otherwise macOS will kernel panic
         self.pendingReboot = YES;
         [self shutdown];
         
+        // Unmount the tmpfs overlays
         if ([self hasOverlays]) {
             [self unmountNow];
         }
         
-        BOOL isReset = NO;
+        // Now wait for the device to come back in an unjailbroken state
+        BOOL removedJailbreak = NO;
         for (int i = 0; i < 10; i++) {
             [self reloadDeviceState];
-            isReset = !self.isBooted && ![self isJailbroken];
-            if (isReset) {
+            
+            removedJailbreak = self.isBooted && [self isJailbroken] == NO;
+            if (removedJailbreak) {
+                // The device booted and is no longer jailbroken
                 break;
             }
             
             [NSThread sleepForTimeInterval:1.0];
         }
         
-        if (!isReset) {
+        // Don't continue with the reboot if the jailbreak failed to be removed
+        if (!removedJailbreak) {
             NSLog(@"Failed to unjailbreak simulator: %@", self);
-            // Cancel reboot
             self.pendingReboot = NO;
             return;
         }
         
+        // The simulator will now boot to the original state
         [self boot];
+    }];
+}
+
+- (void)jailbreak {
+    // "jailbreak" this simulator's runtime (which carries over to all simulator devices based on this runtime)
+    [self _performBlockOnCommandQueue:^{
+        NSError *error = nil;
+        if (!self.isBooted) {
+            error = [NSError errorWithDomain:@"EABootedSimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is not booted"}];
+        }
+        else if ([self isJailbroken]) {
+            error = [NSError errorWithDomain:@"EABootedSimDevice" code:2 userInfo:@{NSLocalizedDescriptionKey: @"Device is already jailbroken"}];
+        }
+        else if ([self prepareJbFilesystem] == NO) {
+            error = [NSError errorWithDomain:@"EABootedSimDevice" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Failed to prepare filesystem for jailbreak"}];
+        }
+        else if ([self setupInjection] == NO) {
+            error = [NSError errorWithDomain:@"EABootedSimDevice" code:4 userInfo:@{NSLocalizedDescriptionKey: @"Failed to setup injection"}];
+        }
+        else if ([self hasInjection] == NO) {
+            error = [NSError errorWithDomain:@"EABootedSimDevice" code:5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to inject loader"}];
+        }
+        
+        if (error) {
+            NSLog(@"Failed to jailbreak device %@ with error: %@", self, error);
+        }
+
+        if (self.delegate && [self.delegate respondsToSelector:@selector(device:jailbreakFinished:error:)]) {
+            BOOL success = [self isJailbroken];
+            [self.delegate device:self jailbreakFinished:success error:error];
+        }
     }];
 }
 
 - (void)shutdown {
     if (!self.isBooted) {
-        NSLog(@"Cannot shutdown a device that is not booted: %@", self);
-        return;
+        [self reloadDeviceState];
+        if (!self.isBooted) {
+            NSLog(@"Cannot shutdown a device that is not booted: %@", self);
+            return;
+        }
     }
     
-    [self _performBlockOnCommandQueue:^{
-        [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"shutdown", self.udidString]];
+    // Shutdown the simulator. This doesn't reliably terminate the actual Simulator frontend app process
+    ((void (*)(id, SEL, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"shutdownAsyncWithCompletionHandler:"), ^(NSError *error) {
+        if (error) {
+            NSLog(@"Failed to shutdown device: %@", error);
+            return;
+        }
         
-        for (int i = 0; i < 10 && !self.isBooted; i++) {
+        for (int i = 0; i < 10 && self.isBooted; i++) {
+            NSLog(@"Waiting for device to shutdown: %@", self);
             [self reloadDeviceState];
-            if (!self.isBooted) {
-                break;
-            }
-            
             [NSThread sleepForTimeInterval:1.0];
         }
-                
+        
         // If the device was shutdown for a reboot, boot it again now.
         // Note: Reboots will not call the didShutdown: delegate method
         if (self.pendingReboot) {
-            // -boot will reset pendingReboot upon completion,
-            // then call delegate method deviceDidReboot:
+            // -boot will cleanup the pendingReboot
             [self boot];
             return;
         }
         
         if (self.delegate) {
-            if (!self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidShutdown:)]) {
+            if (self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToShutdownWithError:)]) {
+                // Device is still booted, something went wrong
+                [self.delegate device:self didFailToShutdownWithError:[NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to shutdown device"}]];
+            }
+            else if (!self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidShutdown:)]) {
                 [self.delegate deviceDidShutdown:self];
             }
         }
-    }];
+    });
 }
 
 - (void)reboot {

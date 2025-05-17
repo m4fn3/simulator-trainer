@@ -23,9 +23,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)unmountNow;
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
-- (void)setupInjection;
+- (BOOL)setupInjection;
 - (NSString *)pathToLoaderDylib;
 - (void)unjailbreak;
+- (void)jailbreak;
 - (BOOL)isJailbroken;
 
 - (void)shutdown;

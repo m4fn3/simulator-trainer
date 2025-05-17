@@ -91,11 +91,13 @@
     return nil;
 }
 
-- (NSDictionary *)simDeviceInfoForUDID:(NSString *)udid {
-    for (id device in [self simDeviceInfosOnlyBooted:NO]) {
-        NSString *udid = [((NSUUID * (*)(id, SEL))objc_msgSend)(device, NSSelectorFromString(@"UDID")) UUIDString];
-        if ([udid isEqualToString:udid]) {
-            return device;
+- (NSDictionary *)simDeviceInfoForUDID:(NSString *)targetUdid{
+    NSArray *coreSimDevices = [self simDeviceInfosOnlyBooted:NO];
+    for (int i = 0; i < coreSimDevices.count; i++) {
+        NSDictionary *coreSimDevice = coreSimDevices[i];
+        NSString *deviceUdid = [((NSUUID * (*)(id, SEL))objc_msgSend)(coreSimDevice, NSSelectorFromString(@"UDID")) UUIDString];
+        if ([deviceUdid isEqualToString:targetUdid]) {
+            return coreSimDevice;
         }
     }
     
@@ -110,7 +112,6 @@
     }
 
     NSString *targetSimulatorUDID = bootedSimulators[0][@"udid"];
-    NSString *simulatorName = bootedSimulators[0][@"name"];
     return [self _launchAppOnSimulator:targetSimulatorUDID appBundleId:appBundleId dylibs:dylibPaths];
 }
 

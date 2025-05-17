@@ -794,7 +794,7 @@
                                                                                 <rect key="frame" x="3" y="0.0" width="131" height="24"/>
                                                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                 <subviews>
-                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="dmB-sN-Gmu">
+                                                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="dmB-sN-Gmu">
                                                                                         <rect key="frame" x="0.0" y="5" width="131" height="14"/>
                                                                                         <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Tweak Name 1" id="nuO-82-f6f">
                                                                                             <font key="font" metaFont="smallSystem"/>
@@ -830,7 +830,7 @@
                                                                                 <rect key="frame" x="140" y="0.0" width="241" height="17"/>
                                                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                                 <subviews>
-                                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="OI8-Cn-b6s">
+                                                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="OI8-Cn-b6s">
                                                                                         <rect key="frame" x="0.0" y="3" width="241" height="11"/>
                                                                                         <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Install Location" id="C5u-RH-Nhs">
                                                                                             <font key="font" metaFont="miniSystem"/>
@@ -880,7 +880,7 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                             </scrollView>
-                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VRw-OZ-KFT">
+                            <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VRw-OZ-KFT">
                                 <rect key="frame" x="42" y="295" width="342" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <textFieldCell key="cell" lineBreakMode="truncatingTail" allowsUndo="NO" sendsActionOnEndEditing="YES" title="Status: Not jailbroken" id="Yxc-08-uCe">
@@ -914,9 +914,17 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" id="vET-5y-FCQ">
-                                <rect key="frame" x="209" y="276" width="180" height="32"/>
+                                <rect key="frame" x="209" y="276" width="95" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Boot" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5OV-gQ-X4u">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                            </button>
+                            <button verticalHuggingPriority="750" id="IIW-vo-Gkt">
+                                <rect key="frame" x="294" y="276" width="95" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Shutdown" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5eW-9b-dcR">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
@@ -933,6 +941,7 @@
                         <outlet property="rebootButton" destination="gwh-b7-7Ve" id="wZn-lC-ZOt"/>
                         <outlet property="removeJailbreakButton" destination="xs4-my-eQr" id="6UD-3h-i8m"/>
                         <outlet property="respringButton" destination="fJQ-AO-gXb" id="KtM-L2-EBg"/>
+                        <outlet property="shutdownButton" destination="IIW-vo-Gkt" id="vDz-Qb-9B8"/>
                         <outlet property="statusImageView" destination="LFh-8W-YWD" id="LRU-zR-tLm"/>
                         <outlet property="tweakStatus" destination="VRw-OZ-KFT" id="xc7-mM-adv"/>
                     </connections>
