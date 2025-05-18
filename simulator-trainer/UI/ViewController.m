@@ -5,7 +5,9 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
+#import <ServiceManagement/ServiceManagement.h>
 #import "EABootedSimDevice.h"
+#import "SimHelperCommon.h"
 #import "ViewController.h"
 
 #define ON_MAIN_THREAD(block) \
@@ -16,11 +18,15 @@
     }
 
 @interface ViewController () {
+    AuthorizationRef authRef;
     NSArray *allSimDevices;
     BOOL showDemoData;
     EASimDevice *selectedDevice;
     NSInteger selectedDeviceIndex;
 }
+
+@property (atomic, strong) NSXPCConnection *helperConnection;
+@property (atomic, copy) NSData *authorizationData;
 
 @end
 
@@ -66,6 +72,78 @@
     
     [self _populateDevicePopup];
     [self refreshDeviceList];
+}
+
+- (void)_setupAuthorizationForHelper {
+    // Create an authorization reference to use for the helper
+    if (AuthorizationCreate(NULL, NULL, 0, &self->authRef) == errAuthorizationSuccess) {
+        AuthorizationExternalForm extForm;
+        if (AuthorizationMakeExternalForm(self->authRef, &extForm) == errAuthorizationSuccess) {
+            self.authorizationData = [NSData dataWithBytes:&extForm length:sizeof(extForm)];
+        }
+    }
+    
+    // And then grant the authorization rights to the helper
+    if (self->authRef) {
+        [SimHelperCommon grantAuthorizationRights:self->authRef];
+    }
+}
+
+- (void)_installHelperService {
+    // Install the helper service if needed
+    CFErrorRef error = NULL;
+    // see if it needs to be blessed
+    CFDictionaryRef jobDictionary = SMJobCopyDictionary(kSMDomainSystemLaunchd, (CFStringRef)kSimRuntimeHelperServiceName);
+    if (jobDictionary) {
+        // The helper is already installed, nothing further to do
+        NSLog(@"Helper service already installed: %@", (__bridge NSDictionary *)jobDictionary);
+        CFRelease(jobDictionary);
+        return;
+    }
+    
+    if (SMJobBless(kSMDomainSystemLaunchd, (CFStringRef)kSimRuntimeHelperServiceName, self->authRef, &error)) {
+        NSLog(@"Successfully installed helper service");
+    }
+    else {
+        NSLog(@"Failed to install helper service: %@", (__bridge NSError *)error);
+        CFRelease(error);
+    }
+}
+
+- (void)connectToHelperService {
+    if (self.helperConnection) {
+        return;
+    }
+    
+    // Check if the authorization reference is valid. Try to create one if not
+    if (!self->authRef) {
+        [self _setupAuthorizationForHelper];
+        
+        // If that failed, the connection cannot proceed
+        if (!self->authRef) {
+            NSLog(@"Failed to create authorization reference, cannot connect to helper");
+            return;
+        }
+    }
+    
+    // Install the helper service if needed
+    [self _installHelperService];
+    
+    self.helperConnection = [[NSXPCConnection alloc] initWithMachServiceName:(NSString *)kSimRuntimeHelperServiceName options:NSXPCConnectionPrivileged];
+    self.helperConnection.remoteObjectInterface = [NSXPCInterface interfaceWithProtocol:@protocol(SimRuntimeHelperProtocol)];
+    self.helperConnection.exportedInterface = [NSXPCInterface interfaceWithProtocol:@protocol(SimRuntimeHelperProtocol)];
+    self.helperConnection.exportedObject = self;
+    
+    __weak typeof(self) weakSelf = self;
+    self.helperConnection.invalidationHandler = ^{
+        weakSelf.helperConnection.invalidationHandler = nil;
+        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
+            weakSelf.helperConnection = nil;
+            NSLog(@"Connection to helper service invalidated");
+        }];
+    };
+    
+    [self.helperConnection resume];
 }
 
 - (void)refreshDeviceList {
@@ -366,13 +444,33 @@
         [self setStatus:@"Device already jailbroken"];
         return;
     }
-
+    
     _jailbreakButton.enabled = NO;
     _statusImageView.image = [NSImage imageNamed:@"progress.indicator"];
-
+    
     [self setStatus:@"Jailbreaking device..."];
     
-    [bootedSim jailbreak];
+    [self connectToHelperService];
+    [[self.helperConnection remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
+        if (proxyError) {
+            NSLog(@"Failed to connect to helper: %@", proxyError);
+        }
+        
+        [self setStatus:@"Failed to connect to helper"];
+
+    }] jailbreakSimRuntime:bootedSim.runtimeRoot completion:^(NSError *error, NSString *simRuntimePath) {
+        if (error) {
+            NSLog(@"Failed to jailbreak sim runtime: %@", error);
+            [self setStatus:@"Failed to jailbreak sim device"];
+            self->selectedDevice = nil;
+            return;
+        }
+        else {
+            NSLog(@"Successfully jailbroke sim runtime: %@", simRuntimePath);
+            [self setStatus:@"Sim device is jailbroken"];
+        }
+    }];
+    //    [bootedSim jailbreak];
 }
 
 - (void)handleRemoveJailbreakSelected:(NSButton *)sender {
