@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */; };
-		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; };
+		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -353,8 +353,9 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SimRuntimeHelper/SimRuntimeHelper.entitlements;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
-				DEVELOPMENT_TEAM = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = "SimRuntimeHelper/SimRuntimeHelper-Info.plist";
 				OTHER_LDFLAGS = (
@@ -378,8 +379,9 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = SimRuntimeHelper/SimRuntimeHelper.entitlements;
 				CODE_SIGN_IDENTITY = "Developer ID Application";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
-				DEVELOPMENT_TEAM = "";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				INFOPLIST_FILE = "SimRuntimeHelper/SimRuntimeHelper-Info.plist";
 				OTHER_LDFLAGS = (
@@ -599,11 +601,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "simulator-trainer/Supporting Files/simulator_trainer.entitlements";
 				CODE_SIGN_IDENTITY = "Developer ID Application";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 44L979X757;
+				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
@@ -633,11 +635,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "simulator-trainer/Supporting Files/simulator_trainer.entitlements";
 				CODE_SIGN_IDENTITY = "Developer ID Application";
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 44L979X757;
+				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
