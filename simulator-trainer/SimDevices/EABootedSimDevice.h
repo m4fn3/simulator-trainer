@@ -19,11 +19,9 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSArray <EASimDevice *> * _Nonnull)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
-- (BOOL)prepareJbFilesystem;
 - (void)unmountNow;
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
-- (BOOL)setupInjection;
 - (NSString * _Nonnull)pathToLoaderDylib;
 - (void)unjailbreak;
 - (void)jailbreak;

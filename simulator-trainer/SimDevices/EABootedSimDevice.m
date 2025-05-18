@@ -155,7 +155,7 @@
     }
 }
 
-- (BOOL)prepareJbFilesystem {
+- (BOOL)_prepareJbFilesystem {
     for (NSString *overlayPath in [self directoriesToOverlay]) {
         if (![[NSFileManager defaultManager] fileExistsAtPath:overlayPath]) {
             NSLog(@"host-relative mount point path does not exist: %@", overlayPath);
@@ -273,7 +273,7 @@
     return [stdoutString containsString:[self pathToLoaderDylib]];
 }
 
-- (BOOL)setupInjection {
+- (BOOL)_setupInjection {
     NSString *simRelativeLoaderPath = [self pathToLoaderDylib];
     if (![[NSFileManager defaultManager] fileExistsAtPath:simRelativeLoaderPath]) {        
         NSString *loaderPath = [[NSBundle mainBundle] pathForResource:@"loader" ofType:@"dylib"];
@@ -358,19 +358,19 @@
     [self _performBlockOnCommandQueue:^{
         NSError *error = nil;
         if (!self.isBooted) {
-            error = [NSError errorWithDomain:@"EABootedSimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is not booted"}];
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is not booted"}];
         }
         else if ([self isJailbroken]) {
-            error = [NSError errorWithDomain:@"EABootedSimDevice" code:2 userInfo:@{NSLocalizedDescriptionKey: @"Device is already jailbroken"}];
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:2 userInfo:@{NSLocalizedDescriptionKey: @"Device is already jailbroken"}];
         }
-        else if ([self prepareJbFilesystem] == NO) {
-            error = [NSError errorWithDomain:@"EABootedSimDevice" code:3 userInfo:@{NSLocalizedDescriptionKey: @"Failed to prepare filesystem for jailbreak"}];
+        else if ([self _prepareJbFilesystem] == NO) {
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:3 userInfo:@{NSLocalizedDescriptionKey: @"Failed to prepare filesystem for jailbreak"}];
         }
-        else if ([self setupInjection] == NO) {
-            error = [NSError errorWithDomain:@"EABootedSimDevice" code:4 userInfo:@{NSLocalizedDescriptionKey: @"Failed to setup injection"}];
+        else if ([self _setupInjection] == NO) {
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:4 userInfo:@{NSLocalizedDescriptionKey: @"Failed to setup injection"}];
         }
         else if ([self hasInjection] == NO) {
-            error = [NSError errorWithDomain:@"EABootedSimDevice" code:5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to inject loader"}];
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to inject loader"}];
         }
         
         if (error) {
@@ -417,7 +417,7 @@
         if (self.delegate) {
             if (self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToShutdownWithError:)]) {
                 // Device is still booted, something went wrong
-                [self.delegate device:self didFailToShutdownWithError:[NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to shutdown device"}]];
+                [self.delegate device:self didFailToShutdownWithError:[NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Failed to shutdown device"}]];
             }
             else if (!self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidShutdown:)]) {
                 [self.delegate deviceDidShutdown:self];

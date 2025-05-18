@@ -203,14 +203,20 @@ static void setup_logging(void) {
     }
     
     // todo: improve
+    // Keep track of whether this is a reboot or a cold boot
     BOOL bootingForReboot = NO;
     if ([self isKindOfClass:NSClassFromString(@"EABootedSimDevice")]) {
         bootingForReboot = [[self valueForKey:@"pendingReboot"] boolValue];
+        // Clear pending reboot flag regardless of whether boot failed or not
+        [self setValue:@(NO) forKey:@"pendingReboot"];
     }
     
-    // Options: deathPort, persist, env, disabled_jobs, binpref, runtime, device_type
+    // Begin boot
     NSDictionary *options = @{};
     ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, _commandQueue, ^(NSError *error) {
+        // Boot completed. Refresh the device state, check for errors, then notify the delegate/completionHandler
+        [self reloadDeviceState];
+        
         if (error) {
             NSLog(@"Boot failed with error: %@", error);
             if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
@@ -220,67 +226,45 @@ static void setup_logging(void) {
             if (completion) {
                 completion(error);
             }
-            
-            return;
         }
-        
-//        [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"simctl", @"boot", self.udidString]];
-        
-//        NSError *cmdError = nil;
-//        NSString *cmdOutput = nil;
-//        [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
-        [[EAXCRun sharedInstance] _runCommandAsUnprivilegedUser:@[@"/usr/bin/open", @"-a", @"Simulator"] environment:nil waitUntilExit:YES];
-//        
-////        if (cmdError) {
-////            NSLog(@"Simulator failed to open: %@", cmdError);
-//            
-//            if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
-//                [self.delegate device:self didFailToBootWithError:cmdError];
-//            }
-//            
-//            if (completion) {
-//                completion(cmdError);
-//            }
-//            
-//            
-////            return;
-////        }
-//        
-        [self reloadDeviceState];
-        
-        // Done booting (or failed to boot)
-        // Notify the delegate if needed
-        if (self.delegate || completion) {
+        else {
+            // Boot completed successfully
             
-            // If this was a reboot, reset the pendingReboot flag and notify the delegate.
-            if (bootingForReboot) {
-                [self setValue:@(NO) forKey:@"pendingReboot"];
-                
-                if ([self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {
-                    [self.delegate deviceDidReboot:self];
-                }
-                
-                return;
+            // Open the simulator GUI app so the simruntime can't ghost. They will happily sneak-run in the bg all day invisible
+            NSError *cmdError = nil;
+            NSString *cmdOutput = nil;
+            [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
+            
+            // Done booting (or failed to boot)
+            // Notify the delegate if needed
+            //            if (self.delegate || completion) {
+            // Reboot-boots fire a different delegate method
+            if (bootingForReboot && [self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {
+                // Device is rebooted
+                [self.delegate deviceDidReboot:self];
             }
-            
-            if (self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidBoot:)]) {
+            else if (!bootingForReboot && self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidBoot:)]) {
                 // Device is booted
+                EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
+                [self.delegate deviceDidBoot:bootedDevice];
+            }
+            else if (!bootingForReboot && !self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
+                // Device was booting, but failed to boot
                 EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
                 [self.delegate deviceDidBoot:bootedDevice];
             }
             else if (!self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 // No errors were raised, but the device remains unbooted
-                [self.delegate device:self didFailToBootWithError:[NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]];
             }
         }
         
-        if (completion && self.isBooted) {
-            // Device is booted
-            completion(nil);
-        }
-        else if (completion && !self.isBooted) {
-            // No errors were raised, but the device remains unbooted
-            completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]);
+        if (completion) {
+            if (self.isBooted) {
+                completion(nil);
+            }
+            else {
+                completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]);
+            }
         }
     });
 }
