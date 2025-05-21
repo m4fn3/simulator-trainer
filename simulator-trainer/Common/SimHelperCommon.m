@@ -6,6 +6,9 @@
 //
 
 #import "SimHelperCommon.h"
+#import "AppBinaryPatcher.h"
+#import "CommandRunner.h"
+#import "tmpfs_overlay.h"
 
 NSString * const kSimRuntimeHelperServiceName = @"com.objc.simulator-trainer.SimRuntimeHelper";
 NSString * const kSimRuntimeHelperAuthRightName = @"com.objc.simulator-trainer.helper.right";
@@ -34,6 +37,118 @@ NSString * const kSimRuntimeHelperAuthRightDescription = @"Authorize simulator-t
             NSLog(@"Successfully set authorization right");
         }
     }
+}
+
++ (void)installTweakLoaderWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
+    if (!options || !options.tweakLoaderSourcePath || !options.tweakLoaderDestinationPath || !options.victimPathForTweakLoader) {
+        if (completion) {
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid options"}];
+            completion(error);
+        }
+        return;
+    }
+    
+    __block NSError *error = nil;
+    if (![[NSFileManager defaultManager] fileExistsAtPath:options.tweakLoaderDestinationPath]) {
+        [[NSFileManager defaultManager] copyItemAtPath:options.tweakLoaderSourcePath toPath:options.tweakLoaderDestinationPath error:&error];
+    
+        for (NSString *sourcePath in options.filesToCopy) {
+            NSString *targetPath = options.filesToCopy[sourcePath];
+            if ([[NSFileManager defaultManager] fileExistsAtPath:targetPath]) {
+                NSLog(@"File already exists at target path: %@", targetPath);
+                continue;
+            }
+    
+            NSString *targetDir = [targetPath stringByDeletingLastPathComponent];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:targetDir]) {
+                NSError *error = nil;
+                [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:&error];
+                if (error) {
+                    NSLog(@"Failed to create target directory: %@", error);
+                    break;
+                }
+            }
+    
+            [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:targetPath error:&error];
+            if (error) {
+                NSLog(@"Failed to copy file from %@ to %@: %@", sourcePath, targetPath, error);
+                break;
+            }
+        }
+        
+        if (!error) {
+            [AppBinaryPatcher injectDylib:options.tweakLoaderDestinationPath intoBinary:options.victimPathForTweakLoader usingOptoolAtPath:options.optoolPath completion:^(BOOL success, NSError *patchError) {
+                error = patchError;
+                if (success && !error) {
+                    NSLog(@"Inserted tweakloader into load commands of victim binary %@", options.victimPathForTweakLoader);
+                    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
+                }
+            }];
+        }
+        else {
+            NSLog(@"Failed to copy loader: %@", error);
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to copy tweakloader into simruntime"}];
+        }
+    }
+    
+    
+    
+    if (completion) {
+        completion(error);
+    }
+}
+
++ (void)unmountOverlayAtPath:(NSString *)overlayPath completion:(void (^)(NSError *))completion {
+    if (!overlayPath) {
+        if (completion) {
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
+            completion(error);
+        }
+        
+        return;
+    }
+    
+    if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
+        if (completion) {
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to unmount overlay"}];
+            completion(error);
+        }
+        
+        return;
+    }
+    
+    completion(nil);
+}
+
+
++ (BOOL)mountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error {
+    if (!overlayPath) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
+        }
+        
+        return NO;
+    }
+    
+    if (![[NSFileManager defaultManager] fileExistsAtPath:overlayPath]) {
+        NSError *createError = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:overlayPath withIntermediateDirectories:YES attributes:nil error:&createError];
+        if (createError && error) {
+            *error = createError;
+        }
+        
+        return NO;
+    }
+    
+    if (create_or_remount_overlay_symlinks(overlayPath.UTF8String) != 0) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to mount overlay"}];
+        }
+        
+        return NO;
+    }
+    
+    return YES;
 }
 
 @end

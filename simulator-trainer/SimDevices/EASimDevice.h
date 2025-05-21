@@ -28,6 +28,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL isBooted;
 @property (nonatomic, strong) id coreSimDevice;
 
++ (instancetype _Nullable)deviceWithUdid:(NSString *)udid;
 - (instancetype)initWithCoreSimDevice:(id)coreSimDevice;
 
 - (void)_performBlockOnCommandQueue:(dispatch_block_t)block;
@@ -38,6 +39,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString * _Nonnull)name;
 - (NSString * _Nullable)runtimeVersion;
 - (NSString * _Nullable)platform;
+- (NSString * _Nonnull)libObjcPath;
 
 - (void)reloadDeviceState;
 

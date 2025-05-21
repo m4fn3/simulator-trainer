@@ -10,6 +10,14 @@
 @implementation CommandRunner
 
 + (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
+    if (!command) {
+        NSLog(@"No command provided to runCommand. Command %@, Arguments %@", command, arguments);
+        if (errorOut) {
+            *errorOut = [NSError errorWithDomain:@"CommandExecutionErrorDomain" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Command is nil"}];
+        }
+        return NO;
+    }
+    
     NSTask *task = [[NSTask alloc] init];
     task.launchPath = command;
     task.arguments = arguments;
@@ -23,7 +31,6 @@
     NSPipe *errorPipe = [NSPipe pipe];
     task.standardError = errorPipe;
     task.environment = [[NSProcessInfo processInfo] environment];
-    task.launchPath = command;
 
     [task launch];
     [task waitUntilExit];

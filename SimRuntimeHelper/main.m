@@ -66,23 +66,26 @@
     return error;
 }
 
-- (void)jailbreakSimRuntime:(NSString *)simRuntimePath completion:(void (^)(NSError *, NSString *))completion {
-    NSLog(@"Jailbreaking Sim Runtime at path: %@", simRuntimePath);
-    completion(nil, simRuntimePath);
+- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
+    [SimHelperCommon installTweakLoaderWithOptions:options completion:completion];
 }
 
-- (void)mountOverlayOnSimRuntime:(NSString *)simRuntimePath overlayPath:(NSString *)overlayPath completion:(void (^)(NSError *, NSString *))completion {
-    NSLog(@"Mounting overlay at path: %@ on Sim Runtime at path: %@", overlayPath, simRuntimePath);
-    completion(nil, simRuntimePath);
+- (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths completion:(void (^)(NSError *error))completion {
+    NSLog(@"Mounting tmpfs overlays at paths: %@", overlayPaths);
+    for (NSString *overlayPath in overlayPaths) {
+        NSError *outterError = nil;
+        if (![SimHelperCommon mountOverlayAtPath:overlayPath error:&outterError]) {
+            NSLog(@"Failed to mount overlay at path: %@ with error: %@", overlayPath, outterError);
+            completion(outterError);
+            return;
+        }
+    }
+    
+    completion(nil);
 }
 
-- (void)unjailbreakSimRuntime:(NSString *)simRuntimePath completion:(void (^)(NSError *, NSString *))completion {
+- (void)unjailbreakSimWithUdid:(NSString *)simRuntimePath completion:(void (^)(NSError *, NSString *))completion {
     NSLog(@"Unjailbreaking Sim Runtime at path: %@", simRuntimePath);
-    completion(nil, simRuntimePath);
-}
-
-- (void)unmountOverlayOnSimRuntime:(NSString *)simRuntimePath completion:(void (^)(NSError *, NSString *))completion {
-    NSLog(@"Unmounting overlay on Sim Runtime at path: %@", simRuntimePath);
     completion(nil, simRuntimePath);
 }
 

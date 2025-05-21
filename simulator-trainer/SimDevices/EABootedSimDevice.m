@@ -10,6 +10,7 @@
 #import "tmpfs_overlay.h"
 #import <objc/message.h>
 #import "AppBinaryPatcher.h"
+#import "SimHelperCommon.h"
 #import "CommandRunner.h"
 
 @implementation EABootedSimDevice
@@ -147,52 +148,15 @@
     ];
 }
 
-- (void)unmountNow {
-    for (NSString *overlayPath in [self directoriesToOverlay]) {
-        if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
-            NSLog(@"Failed to unmount path: %@", overlayPath);
-        }
-    }
-}
+//- (void)unmountNow {
+//    for (NSString *overlayPath in [self directoriesToOverlay]) {
+//        if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
+//            NSLog(@"Failed to unmount path: %@", overlayPath);
+//        }
+//    }
+//}
 
-- (BOOL)_prepareJbFilesystem {
-    for (NSString *overlayPath in [self directoriesToOverlay]) {
-        if (![[NSFileManager defaultManager] fileExistsAtPath:overlayPath]) {
-            NSLog(@"host-relative mount point path does not exist: %@", overlayPath);
-            [self unmountNow];
-            return NO;
-        }
-        
-        if (create_or_remount_overlay_symlinks(overlayPath.UTF8String) != 0) {
-            NSLog(@"Failed to mount host-relative path: %@", overlayPath);
-            [self unmountNow];
-            return NO;
-        }
-    }
-    
-    // mkdir:
-    // /private/var/tmp/
-    // /Library/MobileSubstrate/DynamicLibraries/
-    NSString *tmpDir = [self.runtimeRoot stringByAppendingPathComponent:@"/private/var/tmp"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:tmpDir]) {
-        NSError *error = nil;
-        [[NSFileManager defaultManager] createDirectoryAtPath:tmpDir withIntermediateDirectories:YES attributes:nil error:&error];
-        if (error) {
-            NSLog(@"Failed to create tmp directory: %@", error);
-            return NO;
-        }
-    }
-    
-    NSString *libDir = [self.runtimeRoot stringByAppendingPathComponent:@"/Library/MobileSubstrate/DynamicLibraries"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:libDir]) {
-        NSError *error = nil;
-        [[NSFileManager defaultManager] createDirectoryAtPath:libDir withIntermediateDirectories:YES attributes:nil error:&error];
-        if (error) {
-            NSLog(@"Failed to create lib directory: %@", error);
-            return NO;
-        }
-    }
-    
+- (NSDictionary *)bootstrapFilesToCopy {
     NSDictionary *bundleFiles = @{
         @"FLEX.dylib": @"/Library/MobileSubstrate/DynamicLibraries/FLEX.dylib",
         @"FLEX.plist": @"/Library/MobileSubstrate/DynamicLibraries/FLEX.plist",
@@ -201,39 +165,32 @@
         @"loader.dylib": @"/usr/lib/loader.dylib",
     };
     
+    NSMutableDictionary *filesToCopy = [[NSMutableDictionary alloc] init];
+    NSString *simRuntimePath = self.runtimeRoot;
     for (NSString *bundleFile in bundleFiles) {
-        NSString *sourcePath = [[NSBundle mainBundle] pathForResource:bundleFile ofType:nil];
-        if (!sourcePath) {
-            NSLog(@"Failed to find bundle file: %@", bundleFile);
+        NSString *fullSourcePath = [[NSBundle mainBundle] pathForResource:bundleFile ofType:nil];
+        if (!fullSourcePath) {
             continue;
         }
         
-        NSString *targetPath = [self.runtimeRoot stringByAppendingPathComponent:bundleFiles[bundleFile]];
-        if ([[NSFileManager defaultManager] fileExistsAtPath:targetPath]) {
-            NSLog(@"File already exists at target path: %@", targetPath);
-            continue;
-        }
-        
-        NSString *targetDir = [targetPath stringByDeletingLastPathComponent];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:targetDir]) {
-            NSError *error = nil;
-            [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:&error];
-            if (error) {
-                NSLog(@"Failed to create target directory: %@", error);
-                continue;
-            }
-        }
-        
-        NSError *error = nil;
-        [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:targetPath error:&error];
-        if (error) {
-            NSLog(@"Failed to copy bundle file: %@, error: %@", bundleFile, error);
-            continue;
-        }        
+        filesToCopy[fullSourcePath] = [simRuntimePath stringByAppendingPathComponent:bundleFiles[bundleFile]];
     }
     
-    return YES;
+    return [filesToCopy copy];
 }
+
+//// mkdir:
+//// /private/var/tmp/
+//// /Library/MobileSubstrate/DynamicLibraries/
+//NSString *tmpDir = [self.runtimeRoot stringByAppendingPathComponent:@"/private/var/tmp"];
+//if (![[NSFileManager defaultManager] fileExistsAtPath:tmpDir]) {
+//    NSError *error = nil;
+//    [[NSFileManager defaultManager] createDirectoryAtPath:tmpDir withIntermediateDirectories:YES attributes:nil error:&error];
+//    if (error) {
+//        NSLog(@"Failed to create tmp directory: %@", error);
+//        return NO;
+//    }
+//}
 
 - (BOOL)hasOverlays {    
     NSString *libraryMountPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/"];
@@ -270,41 +227,13 @@
         return NO;
     }
     
-    return [stdoutString containsString:[self pathToLoaderDylib]];
+    return [stdoutString containsString:[self tweakLoaderDylibPath]];
 }
 
-- (BOOL)_setupInjection {
-    NSString *simRelativeLoaderPath = [self pathToLoaderDylib];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:simRelativeLoaderPath]) {        
-        NSString *loaderPath = [[NSBundle mainBundle] pathForResource:@"loader" ofType:@"dylib"];
-        
-        NSError *error = nil;
-        [[NSFileManager defaultManager] copyItemAtPath:loaderPath toPath:simRelativeLoaderPath error:&error];
-        if (error) {
-            NSLog(@"Failed to copy loader into overlay: %@", error);
-            return NO;
-        }
-        
-        NSLog(@"Copied %@ to %@", loaderPath, simRelativeLoaderPath);
-    }
-    
-    NSString *libPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/libobjc.A.dylib"];
-    [AppBinaryPatcher injectDylib:simRelativeLoaderPath intoBinary:libPath completion:^(BOOL success, NSError *error) {
-        if (!success) {
-            NSLog(@"Failed: %@", error.localizedDescription);
-        }
-        else {
-            NSLog(@"Succesfully patched %@", libPath);
-            [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
-        }
-    }];
-    
-    return YES;
-}
-
-- (NSString *)pathToLoaderDylib {
-    NSString *runtimeLibraryDir = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"];
-    return [runtimeLibraryDir stringByAppendingPathComponent:@"loader.dylib"];
+- (NSString *)tweakLoaderDylibPath {
+    // RUNTIME_ROOT/usr/lib/loader.dylib
+    NSString *loaderPath = @"/usr/lib/loader.dylib";
+    return [self.runtimeRoot stringByAppendingPathComponent:loaderPath];
 }
 
 - (void)unjailbreak {
@@ -322,10 +251,10 @@
                 return;
             }
             
-            // Unmount the overlays now that the device is shutdown
-            if ([self hasOverlays]) {
-                [self unmountNow];
-            }
+//            // Unmount the overlays now that the device is shutdown
+//            if ([self hasOverlays]) {
+////                [self unmountNow];
+//            }
             
             // Confirm the device is not booted, and that jailbreak overlays are not mounted
             BOOL removedJailbreak = NO;
@@ -350,37 +279,6 @@
             // Success. Sim will boot into its original state
             [self bootWithCompletion:nil];
         }];
-    }];
-}
-
-- (void)jailbreak {
-    // "jailbreak" this simulator's runtime (which carries over to all simulator devices based on this runtime)
-    [self _performBlockOnCommandQueue:^{
-        NSError *error = nil;
-        if (!self.isBooted) {
-            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is not booted"}];
-        }
-        else if ([self isJailbroken]) {
-            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:2 userInfo:@{NSLocalizedDescriptionKey: @"Device is already jailbroken"}];
-        }
-        else if ([self _prepareJbFilesystem] == NO) {
-            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:3 userInfo:@{NSLocalizedDescriptionKey: @"Failed to prepare filesystem for jailbreak"}];
-        }
-        else if ([self _setupInjection] == NO) {
-            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:4 userInfo:@{NSLocalizedDescriptionKey: @"Failed to setup injection"}];
-        }
-        else if ([self hasInjection] == NO) {
-            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:5 userInfo:@{NSLocalizedDescriptionKey: @"Failed to inject loader"}];
-        }
-        
-        if (error) {
-            NSLog(@"Failed to jailbreak device %@ with error: %@", self, error);
-        }
-
-        if (self.delegate && [self.delegate respondsToSelector:@selector(device:jailbreakFinished:error:)]) {
-            BOOL success = [self isJailbroken];
-            [self.delegate device:self jailbreakFinished:success error:error];
-        }
     }];
 }
 

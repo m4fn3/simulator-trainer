@@ -61,7 +61,14 @@
 		5F75140D2DD95F8C005BAFA7 /* Exceptions for "simulator-trainer" folder in "SimRuntimeHelper" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Common/CommandRunner.m,
+				Common/EAXCRun.m,
 				Common/SimHelperCommon.m,
+				Common/SimInjectionOptions.m,
+				Common/tmpfs_overlay.c,
+				Patching/AppBinaryPatcher.m,
+				SimDevices/EABootedSimDevice.m,
+				SimDevices/EASimDevice.m,
 			);
 			target = 5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */;
 		};
@@ -619,7 +626,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -653,7 +666,13 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
 				PRODUCT_NAME = "$(TARGET_NAME)";

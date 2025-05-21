@@ -68,6 +68,35 @@ static void setup_logging(void) {
     setup_logging();
 }
 
++ (instancetype)deviceWithUdid:(NSString *)udid {
+    if (!udid) {
+        NSLog(@"Attempted to create EASimDevice with nil UDID");
+        return nil;
+    }
+    
+    id coreSimDevice = [[EAXCRun sharedInstance] coreSimulatorDeviceForUdid:udid];
+    if (!coreSimDevice) {
+        NSLog(@"Failed to get coreSimDevice for UDID: %@", udid);
+        return nil;
+    }
+    
+    EASimDevice *device = [[self alloc] initWithCoreSimDevice:coreSimDevice];
+    if (!device) {
+        NSLog(@"Failed to create EASimDevice for UDID: %@", udid);
+        return nil;
+    }
+    
+    NSString *state = ((id (*)(id, SEL))objc_msgSend)(device, NSSelectorFromString(@"stateString"));
+    if ([state isEqualToString:@"Booted"]) {
+        EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), device);
+        if (bootedDevice) {
+            return bootedDevice;
+        }
+    }
+    
+    return device;
+}
+
 - (instancetype)initWithCoreSimDevice:(id)coreSimDevice {
     if (!coreSimDevice) {
         NSLog(@"Attempted to create EASimDevice with nil coreSimDevice");
@@ -153,7 +182,7 @@ static void setup_logging(void) {
 }
 
 - (void)reloadDeviceState {
-    self.coreSimDevice = [[EAXCRun sharedInstance] simDeviceInfoForUDID:self.udidString];
+    self.coreSimDevice = [[EAXCRun sharedInstance] coreSimulatorDeviceForUdid:self.udidString];
     if (!self.coreSimDevice) {
         NSLog(@"Failed to reload device state for device: %@", self);
         return;
@@ -267,6 +296,16 @@ static void setup_logging(void) {
             }
         }
     });
+}
+
+- (NSString *)libObjcPath {
+    // This is the path to the binary/dylib that the tweak loader dylib will be
+    // injected into as a load command. Anything that uses this will also
+    // get the tweak loader injected.
+    
+    // RUNTIME_ROOT/usr/lib/libobjc.A.dylib
+    NSString *libObjcPath = @"/usr/lib/libobjc.A.dylib";
+    return [self.runtimeRoot stringByAppendingPathComponent:libObjcPath];
 }
 
 @end

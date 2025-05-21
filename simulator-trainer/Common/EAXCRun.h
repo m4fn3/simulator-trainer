@@ -14,13 +14,10 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (NSString * _Nullable)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments;
-- (NSArray <id>  * _Nullable)simDeviceRuntimes;
-- (NSDictionary * _Nullable )detailsForSimRuntimeWithdentifier:(NSString *)simruntimeIdentifier;
-- (NSDictionary * _Nullable)simDeviceInfoForUDID:(NSString *)udid;
+- (NSDictionary * _Nullable)coreSimulatorDeviceForUdid:(NSString *)udid;
 
-- (NSArray <NSDictionary *> * _Nullable)simDeviceInfosOnlyBooted:(BOOL)onlyBooted;
-- (BOOL)launchAppWithInjectedDylibs:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
-- (BOOL)_launchAppOnSimulator:(NSString *)simulatorUDID appBundleId:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
+//- (BOOL)launchAppWithInjectedDylibs:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
+//- (BOOL)_launchAppOnSimulator:(NSString *)simulatorUDID appBundleId:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
 
 @end
 

@@ -9,12 +9,15 @@
 #import "EAXCRun.h"
 #import "CommandRunner.h"
 
+void dummy(void) {
+    
+}
+
 @implementation AppBinaryPatcher
 
-+ (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion {
++ (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath usingOptoolAtPath:(NSString *)optoolPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion {
     [AppBinaryPatcher thinBinaryAtPath:binaryPath];
 
-    NSString *optoolPath = [[NSBundle mainBundle] pathForResource:@"optool" ofType:nil];
     NSArray *arguments = @[
         @"install",
         @"LC_LOAD_DYLIB",
