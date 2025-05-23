@@ -6,24 +6,23 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "EASimDevice.h"
+#import "SimulatorWrapper.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface EABootedSimDevice : EASimDevice
+@interface BootedSimulatorWrapper : SimulatorWrapper
 
 @property (nonatomic) BOOL pendingReboot;
 
-+ (EABootedSimDevice * _Nullable)fromSimDevice:(EASimDevice * _Nonnull)simDevice;
++ (BootedSimulatorWrapper * _Nullable)fromSimulatorWrapper:(SimulatorWrapper * _Nonnull)simDevice;
 + (NSArray <id> * _Nullable)coreSimulatorDevices;
-+ (NSArray <EASimDevice *> * _Nonnull)allDevices;
++ (NSArray <SimulatorWrapper *> * _Nonnull)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
 - (NSString * _Nonnull)tweakLoaderDylibPath;
 - (NSArray <NSString *> *)directoriesToOverlay;
-- (void)unjailbreak;
 - (BOOL)isJailbroken;
 
 - (void)shutdownWithCompletion:(void (^ _Nullable)(NSError *error))completion;

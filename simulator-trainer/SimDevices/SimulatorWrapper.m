@@ -1,5 +1,5 @@
 //
-//  EASimDevice.m
+//  SimulatorWrapper.m
 //  simulator-trainer
 //
 //  Created by Ethan Arbuckle on 4/28/25.
@@ -7,55 +7,23 @@
 
 #import <objc/runtime.h>
 #import <objc/message.h>
+#import "SimulatorWrapper.h"
+#import "XCRunInterface.h"
 #import "CommandRunner.h"
-#import "EASimDevice.h"
-#import "EAXCRun.h"
 
-@interface EASimDevice () {
-    dispatch_queue_t _commandQueue;
-}
+@interface SimulatorWrapper ()
 @end
 
-@implementation EASimDevice
-
-+ (instancetype)deviceWithUdid:(NSString *)udid {
-    if (!udid) {
-        NSLog(@"Attempted to create EASimDevice with nil UDID");
-        return nil;
-    }
-    
-    id coreSimDevice = [[EAXCRun sharedInstance] coreSimulatorDeviceForUdid:udid];
-    if (!coreSimDevice) {
-        NSLog(@"Failed to get coreSimDevice for UDID: %@", udid);
-        return nil;
-    }
-    
-    EASimDevice *device = [[self alloc] initWithCoreSimDevice:coreSimDevice];
-    if (!device) {
-        NSLog(@"Failed to create EASimDevice for UDID: %@", udid);
-        return nil;
-    }
-    
-    NSString *state = ((id (*)(id, SEL))objc_msgSend)(device, NSSelectorFromString(@"stateString"));
-    if ([state isEqualToString:@"Booted"]) {
-        EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), device);
-        if (bootedDevice) {
-            return bootedDevice;
-        }
-    }
-    
-    return device;
-}
+@implementation SimulatorWrapper
 
 - (instancetype)initWithCoreSimDevice:(id)coreSimDevice {
     if (!coreSimDevice) {
-        NSLog(@"Attempted to create EASimDevice with nil coreSimDevice");
+        NSLog(@"initWithCoreSimDevice: Attempted to create SimulatorWrapper with nil coreSimDevice");
         return nil;
     }
     
     if ((self = [super init])) {
         self.coreSimDevice = coreSimDevice;
-        _commandQueue = dispatch_queue_create("com.simulatortrainer.commandqueue", DISPATCH_QUEUE_SERIAL);
         
         NSString *state = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString"));
         self.isBooted = [state isEqualToString:@"Booted"];
@@ -97,13 +65,12 @@
         return nil;
     }
     
-    id simruntime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
-    if (!simruntime) {
+    id runtime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
+    if (!runtime) {
         NSLog(@"-runtimeRoot: Failed to get simruntime for device: %@", self);
         return nil;
     }
-    
-    id runtime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
+
     return ((id (*)(id, SEL))objc_msgSend)(runtime, NSSelectorFromString(@"root"));
 }
 
@@ -122,17 +89,17 @@
 }
 
 - (NSString *)platform {
-    id simruntime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
-    if (!simruntime) {
+    id runtime = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"runtime"));
+    if (!runtime) {
         NSLog(@"-platform: Failed to get simruntime for device: %@", self);
         return nil;
     }
     
-    return ((id (*)(id, SEL))objc_msgSend)(simruntime, NSSelectorFromString(@"shortName"));
+    return ((id (*)(id, SEL))objc_msgSend)(runtime, NSSelectorFromString(@"shortName"));
 }
 
 - (void)reloadDeviceState {
-    self.coreSimDevice = [[EAXCRun sharedInstance] coreSimulatorDeviceForUdid:self.udidString];
+    self.coreSimDevice = [[XCRunInterface sharedInstance] coreSimulatorDeviceForUdid:self.udidString];
     if (!self.coreSimDevice) {
         NSLog(@"Failed to reload device state for device: %@", self);
         return;
@@ -141,21 +108,10 @@
     self.isBooted = [((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString")) isEqualToString:@"Booted"];
 }
 
-- (void)_performBlockOnCommandQueue:(dispatch_block_t)block {
-    if (!block) {
-        NSLog(@"Attempted to perform nil block on command queue");
-        return;
-    }
-    
-    dispatch_async(_commandQueue, ^{
-        block();
-    });
-}
-
 - (void)bootWithCompletion:(void (^ _Nullable)(NSError * _Nullable error))completion {
     if (!self.coreSimDevice) {
         if (completion) {
-            completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"coreSimDevice is nil"}]);
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"coreSimDevice is nil"}]);
         }
         else {
             NSLog(@"Attempted to boot device with nil coreSimDevice: %@", self);
@@ -168,7 +124,7 @@
 
         if (self.isBooted) {
 
-            NSError *error = [NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is already booted"}];
+            NSError *error = [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is already booted"}];
             if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 [self.delegate device:self didFailToBootWithError:error];
             }
@@ -192,7 +148,8 @@
     
     // Begin boot
     NSDictionary *options = @{};
-    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, _commandQueue, ^(NSError *error) {
+    dispatch_queue_t completionQueue = dispatch_queue_create("com.simulatortrainer.bootcompletion", DISPATCH_QUEUE_SERIAL);
+    ((void (*)(id, SEL, id, id, id))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"bootAsyncWithOptions:completionQueue:completionHandler:"), options, completionQueue, ^(NSError *error) {
         // Boot completed. Refresh the device state, check for errors, then notify the delegate/completionHandler
         [self reloadDeviceState];
         
@@ -207,33 +164,31 @@
             }
         }
         else {
-            // Boot completed successfully
-            
+            // Boot completed
+
             // Open the simulator GUI app so the simruntime can't ghost. They will happily sneak-run in the bg all day invisible
             NSError *cmdError = nil;
             NSString *cmdOutput = nil;
             [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
             
-            // Done booting (or failed to boot)
-            // Notify the delegate if needed
-            //            if (self.delegate || completion) {
-            // Reboot-boots fire a different delegate method
+            // Done booting (or failed to boot), notify the delegate if needed.
             if (bootingForReboot && [self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {
-                // Device is rebooted
+                // Reboot-boots fire a different delegate method
                 [self.delegate deviceDidReboot:self];
             }
             else if (!bootingForReboot && self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidBoot:)]) {
                 // Device is booted
-                EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
+                SimulatorWrapper *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
                 [self.delegate deviceDidBoot:bootedDevice];
             }
             else if (!bootingForReboot && !self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 // Device was booting, but failed to boot
-                EASimDevice *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
+                SimulatorWrapper *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
                 [self.delegate deviceDidBoot:bootedDevice];
             }
             else if (!self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 // No errors were raised, but the device remains unbooted
+                [self.delegate device:self didFailToBootWithError:[NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device failed to boot"}]];
             }
         }
         
@@ -242,7 +197,7 @@
                 completion(nil);
             }
             else {
-                completion([NSError errorWithDomain:@"EASimDevice" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]);
+                completion([NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to boot device"}]);
             }
         }
     });

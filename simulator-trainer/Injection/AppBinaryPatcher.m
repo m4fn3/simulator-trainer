@@ -6,7 +6,7 @@
 //
 
 #import "AppBinaryPatcher.h"
-#import "EAXCRun.h"
+#import "XCRunInterface.h"
 #import "CommandRunner.h"
 
 void dummy(void) {
@@ -40,10 +40,10 @@ void dummy(void) {
 }
 
 + (void)thinBinaryAtPath:(NSString *)binaryPath {
-    NSString *output = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
+    NSString *output = [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
     if ([output containsString:@"arm64"]) {
         NSString *tempPath = [binaryPath stringByAppendingString:@"_arm64"];
-       [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", binaryPath, @"-thin", @"arm64", @"-o", tempPath]];
+       [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"lipo", binaryPath, @"-thin", @"arm64", @"-o", tempPath]];
         
         if ([[NSFileManager defaultManager] fileExistsAtPath:tempPath]) {
             [[NSFileManager defaultManager] removeItemAtPath:binaryPath error:nil];
@@ -79,8 +79,8 @@ void dummy(void) {
 }
 
 + (BOOL)isBinaryArm64SimulatorCompatible:(NSString *)binaryPath {
-    NSString *otoolOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"otool", @"-l", binaryPath]];
-    NSString *lipoOutput = [[EAXCRun sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
+    NSString *otoolOutput = [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"otool", @"-l", binaryPath]];
+    NSString *lipoOutput = [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"lipo", @"-info", binaryPath]];
     return [lipoOutput containsString:@"arm64"] && [otoolOutput containsString:@"platform 7"];
 }
 

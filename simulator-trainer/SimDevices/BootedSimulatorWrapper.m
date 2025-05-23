@@ -6,31 +6,31 @@
 //
 
 #import <objc/message.h>
-#import "EABootedSimDevice.h"
+#import "BootedSimulatorWrapper.h"
 #import "AppBinaryPatcher.h"
 #import "SimHelperCommon.h"
 #import "CommandRunner.h"
 #import "tmpfs_overlay.h"
-#import "EAXCRun.h"
+#import "XCRunInterface.h"
 
-@implementation EABootedSimDevice
+@implementation BootedSimulatorWrapper
 
-+ (EABootedSimDevice *)fromSimDevice:(EASimDevice *)simDevice {
-    if (!simDevice || ![simDevice isKindOfClass:[EASimDevice class]]) {
-        NSLog(@"simDevice must be a valid EASimDevice");
++ (BootedSimulatorWrapper *)fromSimulatorWrapper:(SimulatorWrapper *)wrapper {
+    if (!wrapper || ![wrapper isKindOfClass:[SimulatorWrapper class]]) {
+        NSLog(@"fromSimulatorWrapper: requires a valid SimulatorWrapper");
         return nil;
     }
     
-    if ([simDevice isKindOfClass:[EABootedSimDevice class]]) {
-        return (EABootedSimDevice *)simDevice;
+    if ([wrapper isKindOfClass:[BootedSimulatorWrapper class]]) {
+        return (BootedSimulatorWrapper *)wrapper;
     }
     
-    if (!simDevice.isBooted) {
+    if (!wrapper.isBooted) {
         NSLog(@"simDevice must be booted");
         return nil;
     }
     
-    return [[EABootedSimDevice alloc] initWithCoreSimDevice:simDevice.coreSimDevice];
+    return [[BootedSimulatorWrapper alloc] initWithCoreSimDevice:wrapper.coreSimDevice];
 }
 
 + (NSArray <id> *)coreSimulatorDevices {
@@ -75,7 +75,7 @@
     return ((id (*)(id, SEL))objc_msgSend)(deviceSet, _devices);
 }
 
-+ (NSArray <EASimDevice *> *)allDevices {
++ (NSArray <SimulatorWrapper *> *)allDevices {
     NSMutableArray *wrappedDevices = [[NSMutableArray alloc] init];
     NSArray *coreSimDevices = [self coreSimulatorDevices];
     // For every device returned by CoreSimulator
@@ -87,11 +87,20 @@
                 continue;
             }
             
-            // And use the SimRuntime to build a helper wrapper object
-            EASimDevice *simdev = [[EASimDevice alloc] initWithCoreSimDevice:coreSimDevice];
-            if (simdev) {
-                [wrappedDevices addObject:simdev];
+            SimulatorWrapper *device = nil;
+            NSString *state = ((id (*)(id, SEL))objc_msgSend)(coreSimDevice, NSSelectorFromString(@"stateString"));
+            if ([state isEqualToString:@"Booted"]) {
+                device = [[self alloc] initWithCoreSimDevice:coreSimDevice];
             }
+            else {
+                device = [[SimulatorWrapper alloc] initWithCoreSimDevice:coreSimDevice];
+            }
+            
+            if (!device) {
+                continue;
+            }
+            
+            [wrappedDevices addObject:device];
         }
     }
     
@@ -212,52 +221,6 @@
     // RUNTIME_ROOT/usr/lib/loader.dylib
     NSString *loaderPath = @"/usr/lib/loader.dylib";
     return [self.runtimeRoot stringByAppendingPathComponent:loaderPath];
-}
-
-- (void)unjailbreak {
-    if (!self.isBooted || ![self isJailbroken]) {
-        NSLog(@"Cannot unjailbreak a device that is not booted or not jailbroken: %@", self);
-        return;
-    }
-    
-    // Unjailbreaking is done by unmounting the tmpfs overlays and rebooting the simulator
-    [self _performBlockOnCommandQueue:^{
-        // The sim has to be fully-shutdown before unmounting, otherwise macOS will kernel panic
-        [self shutdownWithCompletion:^(NSError * _Nonnull error) {
-            if (error) {
-                NSLog(@"Failed to shutdown device for unjailbreak %@ with error: %@", self, error);
-                return;
-            }
-            
-//            // Unmount the overlays now that the device is shutdown
-//            if ([self hasOverlays]) {
-////                [self unmountNow];
-//            }
-            
-            // Confirm the device is not booted, and that jailbreak overlays are not mounted
-            BOOL removedJailbreak = NO;
-            for (int i = 0; i < 10; i++) {
-                [self reloadDeviceState];
-                
-                removedJailbreak = self.isBooted == NO && [self hasOverlays] == NO && [self hasInjection] == NO;
-                if (removedJailbreak) {
-                    // The device booted and is no longer jailbroken
-                    break;
-                }
-                
-                [NSThread sleepForTimeInterval:1.0];
-            }
-            
-            // Don't continue with the reboot if the jailbreak failed to be removed
-            if (!removedJailbreak) {
-                NSLog(@"Failed to unjailbreak simulator: %@", self);
-                return;
-            }
-            
-            // Success. Sim will boot into its original state
-            [self bootWithCompletion:nil];
-        }];
-    }];
 }
 
 - (void)shutdownWithCompletion:(void (^)(NSError *error))completion {

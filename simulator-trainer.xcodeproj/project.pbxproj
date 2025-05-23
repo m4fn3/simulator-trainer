@@ -54,14 +54,14 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Common/CommandRunner.m,
-				Common/EAXCRun.m,
 				Common/SimLogging.m,
+				Common/XCRunInterface.m,
 				Injection/AppBinaryPatcher.m,
 				Injection/tmpfs_overlay.c,
 				PriviledgedHelper/SimHelperCommon.m,
 				PriviledgedHelper/SimInjectionOptions.m,
-				SimDevices/EABootedSimDevice.m,
-				SimDevices/EASimDevice.m,
+				SimDevices/BootedSimulatorWrapper.m,
+				SimDevices/SimulatorWrapper.m,
 			);
 			target = 5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */;
 		};

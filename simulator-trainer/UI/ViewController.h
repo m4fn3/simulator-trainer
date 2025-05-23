@@ -6,9 +6,9 @@
 //
 
 #import <Cocoa/Cocoa.h>
-#import "EASimDevice.h"
+#import "SimulatorWrapper.h"
 
-@interface ViewController : NSViewController <EASimDeviceDelegate>
+@interface ViewController : NSViewController <SimulatorWrapperDelegate>
 
 @property (nonatomic, weak) IBOutlet NSPopUpButton *devicePopup;
 @property (nonatomic, weak) IBOutlet NSImageView *statusImageView;

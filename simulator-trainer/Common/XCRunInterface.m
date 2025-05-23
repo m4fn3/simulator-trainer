@@ -6,14 +6,14 @@
 //
 
 #import <objc/message.h>
-#import "EABootedSimDevice.h"
+#import "BootedSimulatorWrapper.h"
 #import "AppBinaryPatcher.h"
-#import "EAXCRun.h"
+#import "XCRunInterface.h"
 
-@implementation EAXCRun
+@implementation XCRunInterface
 
 + (instancetype)sharedInstance {
-    static EAXCRun *sharedInstance = nil;
+    static XCRunInterface *sharedInstance = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         sharedInstance = [[self alloc] init];
@@ -26,7 +26,7 @@
 }
 
 - (NSDictionary *)coreSimulatorDeviceForUdid:(NSString *)targetUdid{
-    NSArray *coreSimDevices = [EABootedSimDevice coreSimulatorDevices];
+    NSArray *coreSimDevices = [BootedSimulatorWrapper coreSimulatorDevices];
     for (int i = 0; i < coreSimDevices.count; i++) {
         NSDictionary *coreSimDevice = coreSimDevices[i];
         NSString *deviceUdid = [((NSUUID * (*)(id, SEL))objc_msgSend)(coreSimDevice, NSSelectorFromString(@"UDID")) UUIDString];

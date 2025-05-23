@@ -7,8 +7,8 @@
 
 #import <Foundation/Foundation.h>
 #import "SimInjectionOptions.h"
-#import "EABootedSimDevice.h"
-#import "EASimDevice.h"
+#import "BootedSimulatorWrapper.h"
+#import "SimulatorWrapper.h"
 
 FOUNDATION_EXPORT NSString * const kSimRuntimeHelperServiceName;
 FOUNDATION_EXPORT NSString * const kSimRuntimeHelperAuthRightName;

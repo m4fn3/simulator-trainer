@@ -5,7 +5,7 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
-#import "EABootedSimDevice.h"
+#import "BootedSimulatorWrapper.h"
 #import "HelperConnection.h"
 #import "SimHelperCommon.h"
 #import "ViewController.h"
@@ -20,7 +20,7 @@
 
 @interface ViewController () {
     NSArray *allSimDevices;
-    EASimDevice *selectedDevice;
+    SimulatorWrapper *selectedDevice;
     NSInteger selectedDeviceIndex;
     HelperConnection *helperConnection;
 }
@@ -74,7 +74,7 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         // Reload the list of devices
         BOOL isFirstFetch = (self->allSimDevices == nil);
-        self->allSimDevices = [EABootedSimDevice allDevices];
+        self->allSimDevices = [BootedSimulatorWrapper allDevices];
         
         ON_MAIN_THREAD(^{
             // Update the device list UI whenever the list changes
@@ -105,7 +105,7 @@
     
     // Otherwise, add each discovered device to the popup list
     for (int i = 0; i < deviceList.count; i++) {
-        EASimDevice *device = deviceList[i];
+        SimulatorWrapper *device = deviceList[i];
         // displayString: "(Booted) iPhone 14 Pro (iOS 17.0) [A1B2C3D4-5678-90AB-CDEF-1234567890AB]"
         [self.devicePopup addItemWithTitle:[device displayString]];
     }
@@ -132,7 +132,7 @@
     [self.devicePopup setEnabled:YES];
 }
 
-- (void)updateDeviceMenuItemLabels {
+- (void)_updateDeviceMenuItemLabels {
     // For every device in the popup list, refresh the coresimulator state then update the label's text.
     // This is necessary because the text includes the device's current boot state
     __weak typeof(self) weakSelf = self;
@@ -140,7 +140,7 @@
         for (int i = 0; i < weakSelf.devicePopup.numberOfItems; i++) {
             NSMenuItem *item = [weakSelf.devicePopup itemAtIndex:i];
 
-            EASimDevice *device = self->allSimDevices[i];
+            SimulatorWrapper *device = self->allSimDevices[i];
             NSString *oldDeviceLabel = item.title;
             
             // Reload the sim device's state
@@ -158,21 +158,19 @@
 - (void)_autoselectDevice {
     NSInteger selectedDeviceIndex = 0;
     // Default selection goes to the first-encountered jailbroken booted device, falling
-    // back to the first-encountered booted device, falling back to the first-encountered
+    // back to the last-encountered booted device, falling back to the first-encountered
     // iOS-platform device, with the last resort being to just select the first device
     for (int i = 0; i < allSimDevices.count; i++) {
-        EASimDevice *device = allSimDevices[i];
-        if (device.isBooted && [device isKindOfClass:[EABootedSimDevice class]] && [(EABootedSimDevice *)device hasInjection]) {
+        SimulatorWrapper *device = allSimDevices[i];
+        if (device.isBooted && [device isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)device hasInjection]) {
             selectedDeviceIndex = i;
             break;
         }
         else if (device.isBooted) {
             selectedDeviceIndex = i;
-            break;
         }
-        else if ([device.platform isEqualToString:@"iOS"]) {
+        else if (!selectedDeviceIndex && [device.platform isEqualToString:@"iOS"]) {
             selectedDeviceIndex = i;
-            break;
         }
     }
     
@@ -186,48 +184,50 @@
 }
 
 - (void)_updateSelectedDeviceUI {
-    // Update the device buttons and labels based on the selected device
-    if (!self->selectedDevice) {
-        // No device selected -- disable buttons
-        [self disableDeviceButtons];
-        return;
-    }
-    
-    // Start with everything disabled
-    [self disableDeviceButtons];
-
-    self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusUnavailable];
-    self.tweakStatus.stringValue = @"No active device";
-    
-    if (self->selectedDevice.isBooted) {
-        // Booted device: enable reboot and check for jailbreak
-        self.rebootButton.enabled = YES;
-        self.shutdownButton.enabled = YES;
+    ON_MAIN_THREAD(^{
+        // Update the device buttons and labels based on the selected device
+        if (!self->selectedDevice) {
+            // No device selected -- disable buttons
+            [self disableDeviceButtons];
+            return;
+        }
         
-        EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
-        if ([bootedSim isJailbroken]) {
-            // Device is jailbroken
-            self.removeJailbreakButton.enabled = YES;
-            self.respringButton.enabled = YES;
-            self.installIPAButton.enabled = YES;
-            self.installTweakButton.enabled = YES;
-            self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusAvailable];
-            self.tweakStatus.stringValue = @"Injection active";
+        // Start with everything disabled
+        [self disableDeviceButtons];
+        
+        self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusUnavailable];
+        self.tweakStatus.stringValue = @"No active device";
+        
+        if (self->selectedDevice.isBooted) {
+            // Booted device: enable reboot and check for jailbreak
+            self.rebootButton.enabled = YES;
+            self.shutdownButton.enabled = YES;
+            
+            BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
+            if ([bootedSim isJailbroken]) {
+                // Device is jailbroken
+                self.removeJailbreakButton.enabled = YES;
+                self.respringButton.enabled = YES;
+                self.installIPAButton.enabled = YES;
+                self.installTweakButton.enabled = YES;
+                self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusAvailable];
+                self.tweakStatus.stringValue = @"Injection active";
+            }
+            else {
+                // Device is not jailbroken
+                self.jailbreakButton.enabled = YES;
+                self.installIPAButton.enabled = YES;
+                self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
+                self.tweakStatus.stringValue = @"Simulator not jailbroken";
+            }
         }
         else {
-            // Device is not jailbroken
-            self.jailbreakButton.enabled = YES;
-            self.installIPAButton.enabled = YES;
-            self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
-            self.tweakStatus.stringValue = @"Simulator not jailbroken";
+            // Device is not booted: enable boot button
+            self.bootButton.enabled = YES;
+            self.rebootButton.enabled = NO;
+            self.shutdownButton.enabled = NO;
         }
-    }
-    else {
-        // Device is not booted: enable boot button
-        self.bootButton.enabled = YES;
-        self.rebootButton.enabled = NO;
-        self.shutdownButton.enabled = NO;
-    }    
+    });
 }
 
 - (void)popupListDidSelectDevice:(NSPopUpButton *)sender {
@@ -245,14 +245,14 @@
         return;
     }
     
-    EASimDevice *newlySelectedDevice = self->allSimDevices[selectedIndex];
+    SimulatorWrapper *newlySelectedDevice = self->allSimDevices[selectedIndex];
     if (newlySelectedDevice.isBooted) {
-        newlySelectedDevice = [EABootedSimDevice fromSimDevice:newlySelectedDevice];
+        newlySelectedDevice = [BootedSimulatorWrapper fromSimulatorWrapper:newlySelectedDevice];
     }
     
     // Only log if a device is already selected (i.e. this isn't the initial load's autoselect), and
     // the new selection is different from the previous selection
-    EASimDevice *previouslySelectedDevice = self->selectedDevice;
+    SimulatorWrapper *previouslySelectedDevice = self->selectedDevice;
     if (previouslySelectedDevice  && previouslySelectedDevice != newlySelectedDevice) {
         NSLog(@"Selected device: %@", newlySelectedDevice);
     }
@@ -279,7 +279,7 @@
     }
     
     NSLog(@"Rebooting device: %@", self->selectedDevice);
-    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
     [bootedSim reboot];
 }
 
@@ -311,7 +311,7 @@
     
     [self setStatus:@"Shutting down device"];
 
-    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
     [bootedSim shutdownWithCompletion:nil];
 }
 
@@ -337,7 +337,7 @@
         return;
     }
     
-    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
     if ([bootedSim isJailbroken]) {
         [self setStatus:@"Device already jailbroken"];
         return;
@@ -365,7 +365,7 @@
     }];
 }
 
-- (void)_helper_didMountOverlaysOnDevice:(EABootedSimDevice *)bootedSim {
+- (void)_helper_didMountOverlaysOnDevice:(BootedSimulatorWrapper *)bootedSim {
     NSXPCConnection *conn = [self->helperConnection getConnection];
     if (!conn) {
         [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to connect to helper"}]];
@@ -400,7 +400,7 @@
         return;
     }
     
-    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
     if (![bootedSim isJailbroken]) {
         [self setStatus:@"Device not jailbroken"];
         return;
@@ -410,10 +410,36 @@
     self.jailbreakButton.enabled = NO;
     self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
     
-    [bootedSim unjailbreak];
-    
-    [self setStatus:@"Jailbreak removed"];
-    [self refreshDeviceList];
+    NSXPCConnection *conn = [self->helperConnection getConnection];
+    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
+        NSLog(@"Unjailbreak remoteObjectProxyWithErrorHandler error: %@", proxyError);
+        [self setStatus:@"Failed to connect to helper"];
+        
+        [self refreshDeviceList];
+        
+    }] unmountMountPoints:[bootedSim directoriesToOverlay] completion:^(NSError *unmountError) {
+        if (unmountError) {
+            NSLog(@"Unjailbreak unmountMountPoints error: %@", unmountError);
+            [self setStatus:@"Failed to unmount overlays"];
+            
+            [self refreshDeviceList];
+        }
+
+        [bootedSim shutdownWithCompletion:^(NSError *shutdownError) {
+            if (shutdownError) {
+                NSLog(@"Unjailbreak shutdownWithCompletion error: %@", shutdownError);
+                [self setStatus:@"Failed to shutdown device"];
+                
+                [self refreshDeviceList];
+            }
+
+            [bootedSim bootWithCompletion:^(NSError *bootError) {
+                [self setStatus:@"Jailbreak removed"];
+                [self refreshDeviceList];
+                [self _updateSelectedDeviceUI];
+            }];
+        }];
+    }];
 }
 
 - (void)handleRespringSelected:(NSButton *)sender {
@@ -428,7 +454,7 @@
         return;
     }
     
-    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
     [bootedSim respring];
 }
 
@@ -439,23 +465,25 @@
     });
 }
 
-- (void)deviceDidBoot:(EASimDevice *)simDevice {
+#pragma mark - SimulatorWrapperDelegate
+
+- (void)deviceDidBoot:(SimulatorWrapper *)simDevice {
     NSLog(@"Device did boot: %@", simDevice);
     self->selectedDevice = simDevice;
     self->selectedDevice.delegate = self;
     
+    [self _updateSelectedDeviceUI];
+    [self _updateDeviceMenuItemLabels];
+
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
-        [self _updateSelectedDeviceUI];
-        [self updateDeviceMenuItemLabels];
-        
         weakSelf.bootButton.enabled = NO;
         weakSelf.rebootButton.enabled = YES;
         weakSelf.shutdownButton.enabled = YES;
     });
 }
 
-- (void)deviceDidReboot:(EASimDevice *)simDevice {
+- (void)deviceDidReboot:(SimulatorWrapper *)simDevice {
     NSLog(@"Device did reboot: %@", simDevice);
     if (!self->selectedDevice) {
         return;
@@ -464,7 +492,7 @@
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
         [self _updateSelectedDeviceUI];
-        [self updateDeviceMenuItemLabels];
+        [self _updateDeviceMenuItemLabels];
         
         weakSelf.bootButton.enabled = NO;
         weakSelf.rebootButton.enabled = YES;
@@ -472,16 +500,12 @@
     });
 }
 
-- (void)deviceDidShutdown:(EASimDevice *)simDevice {
+- (void)deviceDidShutdown:(SimulatorWrapper *)simDevice {
     NSLog(@"Device did shutdown: %@", simDevice);
-    if (!self->selectedDevice) {
-        return;
-    }
-
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
         [self _updateSelectedDeviceUI];
-        [self updateDeviceMenuItemLabels];
+        [self _updateDeviceMenuItemLabels];
 
         weakSelf.bootButton.enabled = YES;
         weakSelf.rebootButton.enabled = NO;
@@ -493,17 +517,17 @@
     });
 }
 
-- (void)device:(EASimDevice *)simDevice didFailToBootWithError:(NSError * _Nullable)error {
+- (void)device:(SimulatorWrapper *)simDevice didFailToBootWithError:(NSError * _Nullable)error {
     NSLog(@"Device failed to boot: %@", error);
-    [self updateDeviceMenuItemLabels];
+    [self _updateDeviceMenuItemLabels];
 }
 
-- (void)device:(EASimDevice *)simDevice didFailToShutdownWithError:(NSError * _Nullable)error {
+- (void)device:(SimulatorWrapper *)simDevice didFailToShutdownWithError:(NSError * _Nullable)error {
     NSLog(@"Device failed to shutdown: %@", error);
-    [self updateDeviceMenuItemLabels];
+    [self _updateDeviceMenuItemLabels];
 }
 
-- (void)device:(EASimDevice *)simDevice jailbreakFinished:(BOOL)success error:(NSError * _Nullable)error {
+- (void)device:(SimulatorWrapper *)simDevice jailbreakFinished:(BOOL)success error:(NSError * _Nullable)error {
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
         if (error || !success) {
@@ -516,7 +540,7 @@
             weakSelf.removeJailbreakButton.enabled = YES;
             [self setStatus:@"Sim device is jailbroken"];
             
-            EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:simDevice];
+            BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:simDevice];
             [bootedSim respring];
         }
         

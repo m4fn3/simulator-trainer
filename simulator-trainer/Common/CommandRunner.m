@@ -13,7 +13,7 @@
     if (!command) {
         NSLog(@"No command provided to runCommand. Command %@, Arguments %@", command, arguments);
         if (errorOut) {
-            *errorOut = [NSError errorWithDomain:@"CommandExecutionErrorDomain" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Command is nil"}];
+            *errorOut = [NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Command is nil"}];
         }
 
         return NO;
