@@ -1,6 +1,6 @@
 //
 //  CommandRunner.h
-//  interjector-macos
+//
 //
 //  Created by Ethan Arbuckle on 3/15/24.
 //

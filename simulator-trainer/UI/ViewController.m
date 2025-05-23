@@ -5,10 +5,11 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
-#import <ServiceManagement/ServiceManagement.h>
 #import "EABootedSimDevice.h"
+#import "HelperConnection.h"
 #import "SimHelperCommon.h"
 #import "ViewController.h"
+
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -18,15 +19,12 @@
     }
 
 @interface ViewController () {
-    AuthorizationRef authRef;
     NSArray *allSimDevices;
     BOOL showDemoData;
     EASimDevice *selectedDevice;
     NSInteger selectedDeviceIndex;
+    HelperConnection *helperConnection;
 }
-
-@property (atomic, strong) NSXPCConnection *helperConnection;
-@property (atomic, copy) NSData *authorizationData;
 
 @end
 
@@ -38,6 +36,8 @@
         showDemoData = NO;
         selectedDevice = nil;
         selectedDeviceIndex = -1;
+        
+        helperConnection = [[HelperConnection alloc] init];
     }
 
     return self;
@@ -72,84 +72,6 @@
     
     [self _populateDevicePopup];
     [self refreshDeviceList];
-}
-
-- (void)_setupAuthorizationForHelper {
-    // Create an authorization reference to use for the helper
-    if (AuthorizationCreate(NULL, NULL, 0, &self->authRef) == errAuthorizationSuccess) {
-        AuthorizationExternalForm extForm;
-        if (AuthorizationMakeExternalForm(self->authRef, &extForm) == errAuthorizationSuccess) {
-            self.authorizationData = [NSData dataWithBytes:&extForm length:sizeof(extForm)];
-        }
-    }
-    
-    // And then grant the authorization rights to the helper
-    if (self->authRef) {
-        [SimHelperCommon grantAuthorizationRights:self->authRef];
-    }
-}
-
-- (BOOL)_installHelperService {
-    // Check if the helper service is already installed
-    CFErrorRef error = NULL;
-    CFDictionaryRef jobDictionary = SMJobCopyDictionary(kSMDomainSystemLaunchd, (CFStringRef)kSimRuntimeHelperServiceName);
-    if (jobDictionary) {
-        // Nothing further to do
-        CFRelease(jobDictionary);
-//        return YES;
-    }
-    
-    // The helper service is not installed, so install it
-    if (SMJobBless(kSMDomainSystemLaunchd, (CFStringRef)kSimRuntimeHelperServiceName, self->authRef, &error)) {
-        return YES;
-    }
-    
-    if (error) {
-        NSLog(@"Failed to install helper service: %@", (__bridge NSError *)error);
-        CFRelease(error);
-    }
-    
-    return NO;
-}
-
-- (void)connectToHelperService {
-    if (self.helperConnection) {
-        // Already connected
-        return;
-    }
-    
-    // Check if the authorization reference is valid. Try to create one if not
-    if (!self->authRef) {
-        [self _setupAuthorizationForHelper];
-        
-        // If that failed, the connection cannot proceed
-        if (!self->authRef) {
-            NSLog(@"Failed to create authorization reference, cannot connect to helper");
-            return;
-        }
-    }
-    
-    // Install the helper service if needed
-    if (![self _installHelperService]) {
-        NSLog(@"Connection to helper cannot be established, helper service failed to install");
-        return;
-    }
-    
-    self.helperConnection = [[NSXPCConnection alloc] initWithMachServiceName:(NSString *)kSimRuntimeHelperServiceName options:NSXPCConnectionPrivileged];
-    self.helperConnection.remoteObjectInterface = [NSXPCInterface interfaceWithProtocol:@protocol(SimRuntimeHelperProtocol)];
-    self.helperConnection.exportedInterface = [NSXPCInterface interfaceWithProtocol:@protocol(SimRuntimeHelperProtocol)];
-    self.helperConnection.exportedObject = self;
-    
-    __weak typeof(self) weakSelf = self;
-    self.helperConnection.invalidationHandler = ^{
-        weakSelf.helperConnection.invalidationHandler = nil;
-        [[NSOperationQueue mainQueue] addOperationWithBlock:^{
-            weakSelf.helperConnection = nil;
-            NSLog(@"Connection to helper service invalidated");
-        }];
-    };
-    
-    [self.helperConnection resume];
 }
 
 - (void)refreshDeviceList {
@@ -452,17 +374,19 @@
     
     self.jailbreakButton.enabled = NO;
     [self setStatus:@"Jailbreaking..."];
+
+    NSXPCConnection *conn = [self->helperConnection getConnection];
+    if (!conn) {
+        [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to connect to helper"}]];
+        return;
+    }
     
-    [self connectToHelperService];
-    
-    [[self.helperConnection remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
-        NSLog(@"mountTmpfsOverlaysAtPaths connection %@ terminated with error: %@", self.helperConnection, proxyError);
+    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
         [self device:bootedSim jailbreakFinished:NO error:proxyError];
     }] mountTmpfsOverlaysAtPaths:[bootedSim directoriesToOverlay] completion:^(NSError *error) {
         if (error) {
-            NSLog(@"Failed to mount tmpfs overlays: %@", error);
-            [self device:bootedSim jailbreakFinished:NO error:error];
-            return;
+            NSString *errorMessage = [NSString stringWithFormat:@"Failed to mount tmpfs overlays: %@", error];
+            [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: errorMessage}]];
         }
         else {
             [self _helper_didMountOverlaysOnDevice:bootedSim];
@@ -471,23 +395,22 @@
 }
 
 - (void)_helper_didMountOverlaysOnDevice:(EABootedSimDevice *)bootedSim {
+    NSXPCConnection *conn = [self->helperConnection getConnection];
+    if (!conn) {
+        [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to connect to helper"}]];
+        return;
+    }
+    
     SimInjectionOptions *options = [[SimInjectionOptions alloc] init];
     options.tweakLoaderDestinationPath = [bootedSim tweakLoaderDylibPath];
     options.victimPathForTweakLoader = [bootedSim libObjcPath];
     options.tweakLoaderSourcePath = [[NSBundle mainBundle] pathForResource:@"loader" ofType:@"dylib"];
     options.optoolPath = [[NSBundle mainBundle] pathForResource:@"optool" ofType:nil];
     options.filesToCopy = bootedSim.bootstrapFilesToCopy;
-    if (!options.optoolPath) {
-        [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to find optool in bundle"}]];
-        return;
-    }
 
-    [[self.helperConnection remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
-        NSLog(@"setupTweakInjectionWithOptions connection %@ terminated with error: %@", self.helperConnection, proxyError);
+    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
         [self device:bootedSim jailbreakFinished:NO error:proxyError];
-
     }] setupTweakInjectionWithOptions:options completion:^(NSError *error) {
-        NSLog(@"Finished setting up tweak injection with error: %@", error);
         [bootedSim reloadDeviceState];
 
         BOOL jbSuccess = !error && [bootedSim isJailbroken];
@@ -524,6 +447,18 @@
 
 - (void)handleRespringSelected:(NSButton *)sender {
     NSLog(@"Respring selected");
+    if (!self->selectedDevice) {
+        [self setStatus:@"Nothing selected"];
+        return;
+    }
+    
+    if (!self->selectedDevice.isBooted) {
+        [self setStatus:@"Device not booted"];
+        return;
+    }
+    
+    EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
+    [bootedSim respring];
 }
 
 - (void)setStatus:(NSString *)statusText {
@@ -609,6 +544,9 @@
             weakSelf.jailbreakButton.enabled = NO;
             weakSelf.removeJailbreakButton.enabled = YES;
             [self setStatus:@"Sim device is jailbroken"];
+            
+            EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:simDevice];
+            [bootedSim respring];
         }
         
         [self _updateSelectedDeviceUI];

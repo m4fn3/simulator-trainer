@@ -19,17 +19,16 @@ NS_ASSUME_NONNULL_BEGIN
 + (NSArray <EASimDevice *> * _Nonnull)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
-//- (void)unmountNow;
 - (BOOL)hasOverlays;
 - (BOOL)hasInjection;
 - (NSString * _Nonnull)tweakLoaderDylibPath;
 - (NSArray <NSString *> *)directoriesToOverlay;
 - (void)unjailbreak;
-//- (void)jailbreak;
 - (BOOL)isJailbroken;
 
 - (void)shutdownWithCompletion:(void (^ _Nullable)(NSError *error))completion;
 - (void)reboot;
+- (void)respring;
 
 - (NSDictionary *)bootstrapFilesToCopy;
 

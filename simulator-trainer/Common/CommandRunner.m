@@ -1,6 +1,6 @@
 //
 //  CommandRunner.m
-//  interjector-macos
+//
 //
 //  Created by Ethan Arbuckle on 3/15/24.
 //
@@ -15,6 +15,7 @@
         if (errorOut) {
             *errorOut = [NSError errorWithDomain:@"CommandExecutionErrorDomain" code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Command is nil"}];
         }
+
         return NO;
     }
     

@@ -27,6 +27,7 @@
         _tweakLoaderDestinationPath = [coder decodeObjectOfClass:[NSString class] forKey:@"tweakLoaderDestinationPath"];
         _victimPathForTweakLoader = [coder decodeObjectOfClass:[NSString class] forKey:@"victimPathForTweakLoader"];
         _optoolPath = [coder decodeObjectOfClass:[NSString class] forKey:@"optoolPath"];
+        
         NSSet *allowedClasses = [NSSet setWithObjects:[NSDictionary class], [NSString class], [NSString class], nil];
         _filesToCopy = [coder decodeObjectOfClasses:allowedClasses forKey:@"filesToCopy"];
     }

@@ -5,13 +5,13 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
-#import "EABootedSimDevice.h"
-#import "EAXCRun.h"
-#import "tmpfs_overlay.h"
 #import <objc/message.h>
+#import "EABootedSimDevice.h"
 #import "AppBinaryPatcher.h"
 #import "SimHelperCommon.h"
 #import "CommandRunner.h"
+#import "tmpfs_overlay.h"
+#import "EAXCRun.h"
 
 @implementation EABootedSimDevice
 
@@ -139,7 +139,6 @@
     return [[NSString alloc] initWithData:outputData encoding:NSUTF8StringEncoding];
 }
 
-
 - (NSArray <NSString *> *)directoriesToOverlay {
     return @[
         [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"],
@@ -147,14 +146,6 @@
         [self.runtimeRoot stringByAppendingPathComponent:@"/private/var"],
     ];
 }
-
-//- (void)unmountNow {
-//    for (NSString *overlayPath in [self directoriesToOverlay]) {
-//        if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
-//            NSLog(@"Failed to unmount path: %@", overlayPath);
-//        }
-//    }
-//}
 
 - (NSDictionary *)bootstrapFilesToCopy {
     NSDictionary *bundleFiles = @{
@@ -178,19 +169,6 @@
     
     return [filesToCopy copy];
 }
-
-//// mkdir:
-//// /private/var/tmp/
-//// /Library/MobileSubstrate/DynamicLibraries/
-//NSString *tmpDir = [self.runtimeRoot stringByAppendingPathComponent:@"/private/var/tmp"];
-//if (![[NSFileManager defaultManager] fileExistsAtPath:tmpDir]) {
-//    NSError *error = nil;
-//    [[NSFileManager defaultManager] createDirectoryAtPath:tmpDir withIntermediateDirectories:YES attributes:nil error:&error];
-//    if (error) {
-//        NSLog(@"Failed to create tmp directory: %@", error);
-//        return NO;
-//    }
-//}
 
 - (BOOL)hasOverlays {    
     NSString *libraryMountPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/"];
@@ -341,6 +319,10 @@
     
     self.pendingReboot = YES;
     [self shutdownWithCompletion:nil];
+}
+
+- (void)respring {
+    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
 }
 
 - (BOOL)isJailbroken {

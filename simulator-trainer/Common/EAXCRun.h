@@ -16,9 +16,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (NSString * _Nullable)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments;
 - (NSDictionary * _Nullable)coreSimulatorDeviceForUdid:(NSString *)udid;
 
-//- (BOOL)launchAppWithInjectedDylibs:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
-//- (BOOL)_launchAppOnSimulator:(NSString *)simulatorUDID appBundleId:(NSString *)appBundleId dylibs:(NSArray<NSString *> *)dylibPaths;
-
 @end
 
 NS_ASSUME_NONNULL_END

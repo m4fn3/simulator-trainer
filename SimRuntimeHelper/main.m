@@ -71,7 +71,6 @@
 }
 
 - (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths completion:(void (^)(NSError *error))completion {
-    NSLog(@"Mounting tmpfs overlays at paths: %@", overlayPaths);
     for (NSString *overlayPath in overlayPaths) {
         NSError *outterError = nil;
         if (![SimHelperCommon mountOverlayAtPath:overlayPath error:&outterError]) {
@@ -84,9 +83,16 @@
     completion(nil);
 }
 
-- (void)unjailbreakSimWithUdid:(NSString *)simRuntimePath completion:(void (^)(NSError *, NSString *))completion {
-    NSLog(@"Unjailbreaking Sim Runtime at path: %@", simRuntimePath);
-    completion(nil, simRuntimePath);
+- (void)unmountMountPoints:(NSArray <NSString *> *)mountPoints completion:(void (^)(NSError *))completion {
+    for (NSString *mountPoint in mountPoints) {
+        NSError *error = nil;
+        if (![SimHelperCommon unmountOverlayAtPath:mountPoint error:&error]) {
+            completion(error);
+            return;
+        }
+    }
+    
+    completion(nil);
 }
 
 @end

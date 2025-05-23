@@ -79,10 +79,6 @@ NSString * const kSimRuntimeHelperAuthRightDescription = @"Authorize simulator-t
         if (!error) {
             [AppBinaryPatcher injectDylib:options.tweakLoaderDestinationPath intoBinary:options.victimPathForTweakLoader usingOptoolAtPath:options.optoolPath completion:^(BOOL success, NSError *patchError) {
                 error = patchError;
-                if (success && !error) {
-                    NSLog(@"Inserted tweakloader into load commands of victim binary %@", options.victimPathForTweakLoader);
-                    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
-                }
             }];
         }
         else {
@@ -97,29 +93,6 @@ NSString * const kSimRuntimeHelperAuthRightDescription = @"Authorize simulator-t
         completion(error);
     }
 }
-
-+ (void)unmountOverlayAtPath:(NSString *)overlayPath completion:(void (^)(NSError *))completion {
-    if (!overlayPath) {
-        if (completion) {
-            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
-            completion(error);
-        }
-        
-        return;
-    }
-    
-    if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
-        if (completion) {
-            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to unmount overlay"}];
-            completion(error);
-        }
-        
-        return;
-    }
-    
-    completion(nil);
-}
-
 
 + (BOOL)mountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error {
     if (!overlayPath) {
@@ -143,6 +116,26 @@ NSString * const kSimRuntimeHelperAuthRightDescription = @"Authorize simulator-t
     if (create_or_remount_overlay_symlinks(overlayPath.UTF8String) != 0) {
         if (error) {
             *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to mount overlay"}];
+        }
+        
+        return NO;
+    }
+    
+    return YES;
+}
+
++ (BOOL)unmountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error {
+    if (!overlayPath) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
+        }
+        
+        return NO;
+    }
+    
+    if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to unmount overlay"}];
         }
         
         return NO;
