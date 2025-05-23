@@ -55,6 +55,7 @@
 			membershipExceptions = (
 				Common/CommandRunner.m,
 				Common/EAXCRun.m,
+				Common/SimLogging.m,
 				Injection/AppBinaryPatcher.m,
 				Injection/tmpfs_overlay.c,
 				PriviledgedHelper/SimHelperCommon.m,

@@ -18,27 +18,6 @@ NSString * const kSimRuntimeHelperAuthRightDescription = @"Authorize simulator-t
 
 @implementation SimHelperCommon
 
-+ (void)grantAuthorizationRights:(AuthorizationRef)authRef {
-    if (authRef == NULL) {
-        return;
-    }
-    
-    // See if the right already exists by asking for its definition. If it does exist, there's nothing to do
-    if (AuthorizationRightGet(kSimRuntimeHelperAuthRightName.UTF8String, NULL) == errAuthorizationDenied) {
-        // If the right doesn't exist, create it with the default rule
-        CFTypeRef rule = (__bridge CFTypeRef)kSimRuntimeHelperAuthRightDefaultRule;
-        CFStringRef description = (__bridge CFStringRef)kSimRuntimeHelperAuthRightDescription;
-        
-        if (AuthorizationRightSet(authRef, kSimRuntimeHelperAuthRightName.UTF8String, rule, description, NULL, NULL) != errAuthorizationSuccess) {
-            // Failed to set the right. Auth failure
-            NSLog(@"Failed to set authorization right");
-        }
-        else {
-            NSLog(@"Successfully set authorization right");
-        }
-    }
-}
-
 + (void)installTweakLoaderWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
     if (!options || !options.tweakLoaderSourcePath || !options.tweakLoaderDestinationPath || !options.victimPathForTweakLoader) {
         if (completion) {

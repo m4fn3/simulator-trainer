@@ -9,7 +9,7 @@
 #import "HelperConnection.h"
 #import "SimHelperCommon.h"
 #import "ViewController.h"
-
+#import "SimLogging.h"
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -36,8 +36,9 @@
         showDemoData = NO;
         selectedDevice = nil;
         selectedDeviceIndex = -1;
-        
         helperConnection = [[HelperConnection alloc] init];
+        
+        [SimLogging observeSimulatorLogs];
     }
 
     return self;

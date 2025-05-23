@@ -40,7 +40,17 @@
     
     // And then grant the authorization rights to the helper
     if (self->authRef) {
-        [SimHelperCommon grantAuthorizationRights:self->authRef];
+        if (AuthorizationRightGet(kSimRuntimeHelperAuthRightName.UTF8String, NULL) == errAuthorizationDenied) {
+            // If the right doesn't exist, create it with the default rule
+            CFTypeRef rule = (__bridge CFTypeRef)kSimRuntimeHelperAuthRightDefaultRule;
+            CFStringRef description = (__bridge CFStringRef)kSimRuntimeHelperAuthRightDescription;
+            
+            if (AuthorizationRightSet(self->authRef, kSimRuntimeHelperAuthRightName.UTF8String, rule, description, NULL, NULL) != errAuthorizationSuccess) {
+                // Failed to set the right. Auth failure
+                NSLog(@"Failed to set authorization right");
+                self->authRef = NULL;
+            }
+        }
     }
 }
 

@@ -27,8 +27,6 @@ FOUNDATION_EXPORT NSString * const kSimRuntimeHelperAuthRightDescription;
 
 @interface SimHelperCommon : NSObject
 
-+ (void)grantAuthorizationRights:(AuthorizationRef)authRef;
-
 + (void)installTweakLoaderWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion;
 
 + (BOOL)mountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error;
