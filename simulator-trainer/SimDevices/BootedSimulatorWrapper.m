@@ -9,7 +9,6 @@
 #import "BootedSimulatorWrapper.h"
 #import "AppBinaryPatcher.h"
 #import "SimHelperCommon.h"
-#import "CommandRunner.h"
 #import "tmpfs_overlay.h"
 #import "XCRunInterface.h"
 
@@ -205,16 +204,13 @@
     }
 
     NSString *libPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/libobjc.A.dylib"];
-    NSString *stdoutString = nil;
-    NSError *error = nil;
-    [CommandRunner runCommand:@"/usr/bin/otool" withArguments:@[@"-l", libPath] stdoutString:&stdoutString error:&error];
-    
-    if (!stdoutString || error) {
-        NSLog(@"Failed to get otool output: %@", error);
+    NSString *otoolOutput = [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"otool", @"-l", libPath]];
+    if (!otoolOutput) {
+        NSLog(@"Failed to get otool output");
         return NO;
     }
     
-    return [stdoutString containsString:[self tweakLoaderDylibPath]];
+    return [otoolOutput containsString:[self tweakLoaderDylibPath]];
 }
 
 - (NSString *)tweakLoaderDylibPath {
@@ -285,7 +281,7 @@
 }
 
 - (void)respring {
-    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
+    [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"killall", @"-9", @"backboardd"]];
 }
 
 - (BOOL)isJailbroken {

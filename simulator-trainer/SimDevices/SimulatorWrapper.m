@@ -166,10 +166,8 @@
         else {
             // Boot completed
 
-            // Open the simulator GUI app so the simruntime can't ghost. They will happily sneak-run in the bg all day invisible
-            NSError *cmdError = nil;
-            NSString *cmdOutput = nil;
-            [CommandRunner runCommand:@"/usr/bin/open" withArguments:@[@"-a", @"Simulator"] stdoutString:&cmdOutput error:&cmdError];
+            // Open the simulator GUI app so the simruntime can't sneak-run in the bg
+            [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"/usr/bin/open", @"-a", @"Simulator"]];
             
             // Done booting (or failed to boot), notify the delegate if needed.
             if (bootingForReboot && [self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {

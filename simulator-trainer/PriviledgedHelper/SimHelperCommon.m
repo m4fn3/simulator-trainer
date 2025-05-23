@@ -7,7 +7,6 @@
 
 #import "SimHelperCommon.h"
 #import "AppBinaryPatcher.h"
-#import "CommandRunner.h"
 #import "tmpfs_overlay.h"
 
 NSString * const kSimRuntimeHelperServiceName = @"com.objc.simulator-trainer.SimRuntimeHelper";
