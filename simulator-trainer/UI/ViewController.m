@@ -20,7 +20,6 @@
 
 @interface ViewController () {
     NSArray *allSimDevices;
-    BOOL showDemoData;
     EASimDevice *selectedDevice;
     NSInteger selectedDeviceIndex;
     HelperConnection *helperConnection;
@@ -33,7 +32,6 @@
 - (instancetype)initWithCoder:(NSCoder *)coder {
     if ((self = [super initWithCoder:coder])) {
         allSimDevices = nil;
-        showDemoData = NO;
         selectedDevice = nil;
         selectedDeviceIndex = -1;
         helperConnection = [[HelperConnection alloc] init];
@@ -46,9 +44,6 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
-    self.installedTable.delegate = self;
-    self.installedTable.dataSource = self;
 
     self.devicePopup.target = self;
     self.devicePopup.action = @selector(popupListDidSelectDevice:);
@@ -200,7 +195,6 @@
     
     // Start with everything disabled
     [self disableDeviceButtons];
-    showDemoData = NO;
 
     self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusUnavailable];
     self.tweakStatus.stringValue = @"No active device";
@@ -219,8 +213,6 @@
             self.installTweakButton.enabled = YES;
             self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusAvailable];
             self.tweakStatus.stringValue = @"Injection active";
-            
-            showDemoData = YES;
         }
         else {
             // Device is not jailbroken
@@ -235,9 +227,7 @@
         self.bootButton.enabled = YES;
         self.rebootButton.enabled = NO;
         self.shutdownButton.enabled = NO;
-    }
-    
-    [self.installedTable reloadData];
+    }    
 }
 
 - (void)popupListDidSelectDevice:(NSPopUpButton *)sender {
@@ -323,26 +313,6 @@
 
     EABootedSimDevice *bootedSim = [EABootedSimDevice fromSimDevice:self->selectedDevice];
     [bootedSim shutdownWithCompletion:nil];
-}
-
-
-- (NSInteger)numberOfRowsInTableView:(NSTableView *)tableView {
-    return showDemoData ? 6 : 0;
-}
-
-- (NSView *)tableView:(NSTableView *)tableView viewForTableColumn:(NSTableColumn *)tableColumn row:(NSInteger)row {
-    NSTableCellView *cellView = [tableView makeViewWithIdentifier:tableColumn.identifier owner:self];
-    if ([tableColumn.title isEqualToString:@"Name"]) {
-        NSArray *names = @[@"libhooker", @"CydiaSubstrate", @"simbins", @"tweakloader", @"Apollo", @"libobjsee"];
-        cellView.textField.stringValue = names[row];
-    }
-    else if ([tableColumn.title isEqualToString:@"Location"]) {
-        if (self->selectedDevice) {
-            cellView.textField.stringValue = [self->selectedDevice runtimeRoot];
-        }
-    }
-
-    return cellView;
 }
 
 - (void)disableDeviceButtons {
