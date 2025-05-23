@@ -14,7 +14,6 @@ NS_ASSUME_NONNULL_BEGIN
 + (instancetype)sharedInstance;
 
 - (NSString * _Nullable)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments;
-- (NSDictionary * _Nullable)coreSimulatorDeviceForUdid:(NSString *)udid;
 
 @end
 

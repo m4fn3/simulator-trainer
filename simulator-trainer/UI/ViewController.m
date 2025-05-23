@@ -6,8 +6,9 @@
 //
 
 #import "BootedSimulatorWrapper.h"
+#import "SimInjectionOptions.h"
 #import "HelperConnection.h"
-#import "SimHelperCommon.h"
+#import "SimDeviceManager.h"
 #import "ViewController.h"
 #import "SimLogging.h"
 
@@ -74,7 +75,7 @@
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         // Reload the list of devices
         BOOL isFirstFetch = (self->allSimDevices == nil);
-        self->allSimDevices = [BootedSimulatorWrapper allDevices];
+        self->allSimDevices = [SimDeviceManager buildDeviceList];
         
         ON_MAIN_THREAD(^{
             // Update the device list UI whenever the list changes
@@ -346,18 +347,9 @@
     self.jailbreakButton.enabled = NO;
     [self setStatus:@"Jailbreaking..."];
 
-    NSXPCConnection *conn = [self->helperConnection getConnection];
-    if (!conn) {
-        [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to connect to helper"}]];
-        return;
-    }
-    
-    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
-        [self device:bootedSim jailbreakFinished:NO error:proxyError];
-    }] mountTmpfsOverlaysAtPaths:[bootedSim directoriesToOverlay] completion:^(NSError *error) {
+    [self->helperConnection mountTmpfsOverlaysAtPaths:[bootedSim directoriesToOverlay] completion:^(NSError *error) {
         if (error) {
-            NSString *errorMessage = [NSString stringWithFormat:@"Failed to mount tmpfs overlays: %@", error];
-            [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: errorMessage}]];
+            [self device:bootedSim jailbreakFinished:NO error:error];
         }
         else {
             [self _helper_didMountOverlaysOnDevice:bootedSim];
@@ -366,12 +358,6 @@
 }
 
 - (void)_helper_didMountOverlaysOnDevice:(BootedSimulatorWrapper *)bootedSim {
-    NSXPCConnection *conn = [self->helperConnection getConnection];
-    if (!conn) {
-        [self device:bootedSim jailbreakFinished:NO error:[NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to connect to helper"}]];
-        return;
-    }
-    
     SimInjectionOptions *options = [[SimInjectionOptions alloc] init];
     options.tweakLoaderDestinationPath = [bootedSim tweakLoaderDylibPath];
     options.victimPathForTweakLoader = [bootedSim libObjcPath];
@@ -379,13 +365,16 @@
     options.optoolPath = [[NSBundle mainBundle] pathForResource:@"optool" ofType:nil];
     options.filesToCopy = bootedSim.bootstrapFilesToCopy;
 
-    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
-        [self device:bootedSim jailbreakFinished:NO error:proxyError];
-    }] setupTweakInjectionWithOptions:options completion:^(NSError *error) {
-        [bootedSim reloadDeviceState];
+    [self->helperConnection setupTweakInjectionWithOptions:options completion:^(NSError *error) {
+        if (error) {
+            [self device:bootedSim jailbreakFinished:NO error:error];
+        }
+        else {
+            [bootedSim reloadDeviceState];
 
-        BOOL jbSuccess = !error && [bootedSim isJailbroken];
-        [self device:bootedSim jailbreakFinished:jbSuccess error:error];
+            BOOL jbSuccess = !error && [bootedSim isJailbroken];
+            [self device:bootedSim jailbreakFinished:jbSuccess error:error];
+        }
     }];
 }
 

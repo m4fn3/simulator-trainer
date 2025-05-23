@@ -8,8 +8,8 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import "SimulatorWrapper.h"
+#import "SimDeviceManager.h"
 #import "XCRunInterface.h"
-#import "CommandRunner.h"
 
 @interface SimulatorWrapper ()
 @end
@@ -99,7 +99,7 @@
 }
 
 - (void)reloadDeviceState {
-    self.coreSimDevice = [[XCRunInterface sharedInstance] coreSimulatorDeviceForUdid:self.udidString];
+    self.coreSimDevice = [SimDeviceManager coreSimulatorDeviceForUdid:self.udidString];
     if (!self.coreSimDevice) {
         NSLog(@"Failed to reload device state for device: %@", self);
         return;
@@ -140,7 +140,7 @@
     // todo: improve
     // Keep track of whether this is a reboot or a cold boot
     BOOL bootingForReboot = NO;
-    if ([self isKindOfClass:NSClassFromString(@"EABootedSimDevice")]) {
+    if ([self isKindOfClass:NSClassFromString(@"BootedSimulatorWrapper")]) {
         bootingForReboot = [[self valueForKey:@"pendingReboot"] boolValue];
         // Clear pending reboot flag regardless of whether boot failed or not
         [self setValue:@(NO) forKey:@"pendingReboot"];
@@ -154,7 +154,6 @@
         [self reloadDeviceState];
         
         if (error) {
-            NSLog(@"Boot failed with error: %@", error);
             if (self.delegate && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 [self.delegate device:self didFailToBootWithError:error];
             }
@@ -176,13 +175,12 @@
             }
             else if (!bootingForReboot && self.isBooted && [self.delegate respondsToSelector:@selector(deviceDidBoot:)]) {
                 // Device is booted
-                SimulatorWrapper *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
+                SimulatorWrapper *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"BootedSimulatorWrapper"), NSSelectorFromString(@"fromSimulatorWrapper:"), self);
                 [self.delegate deviceDidBoot:bootedDevice];
             }
             else if (!bootingForReboot && !self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 // Device was booting, but failed to boot
-                SimulatorWrapper *bootedDevice = ((id (*)(id, SEL, id))objc_msgSend)(NSClassFromString(@"EABootedSimDevice"), NSSelectorFromString(@"fromSimDevice:"), self);
-                [self.delegate deviceDidBoot:bootedDevice];
+                [self.delegate deviceDidBoot:self];
             }
             else if (!self.isBooted && [self.delegate respondsToSelector:@selector(device:didFailToBootWithError:)]) {
                 // No errors were raised, but the device remains unbooted

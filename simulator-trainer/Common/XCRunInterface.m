@@ -24,19 +24,6 @@
 - (NSString *)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments {
     return [self _runXCRunCommand:arguments environment:nil waitUntilExit:YES];
 }
-
-- (NSDictionary *)coreSimulatorDeviceForUdid:(NSString *)targetUdid{
-    NSArray *coreSimDevices = [BootedSimulatorWrapper coreSimulatorDevices];
-    for (int i = 0; i < coreSimDevices.count; i++) {
-        NSDictionary *coreSimDevice = coreSimDevices[i];
-        NSString *deviceUdid = [((NSUUID * (*)(id, SEL))objc_msgSend)(coreSimDevice, NSSelectorFromString(@"UDID")) UUIDString];
-        if ([deviceUdid isEqualToString:targetUdid]) {
-            return coreSimDevice;
-        }
-    }
-    
-    return nil;
-}
     
 - (NSString *)_runXCRunCommand:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> *)customEnvironment waitUntilExit:(BOOL)waitUntilExit {
     NSPipe *outputPipe = [NSPipe pipe];

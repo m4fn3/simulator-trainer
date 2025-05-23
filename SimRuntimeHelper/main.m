@@ -6,7 +6,9 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "SimHelperCommon.h"
+#import "SimRuntimeHelperProtocol.h"
+#import "AppBinaryPatcher.h"
+#import "tmpfs_overlay.h"
 
 @interface SimRuntimeHelper : NSObject <NSXPCListenerDelegate, SimRuntimeHelperProtocol>
 @property (atomic, strong) NSXPCListener *listener;
@@ -36,57 +38,64 @@
     return YES;
 }
 
-- (NSError *)checkClientAuthorizationData:(NSData *)authorizationData {
-    NSError *error = nil;
-    if (!authorizationData || authorizationData.length != sizeof(AuthorizationExternalForm)) {
-        error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid authorization data"}];
-        return error;
+- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
+    if (!options || !options.tweakLoaderSourcePath || !options.tweakLoaderDestinationPath || !options.victimPathForTweakLoader) {
+        if (completion) {
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid options"}];
+            completion(error);
+        }
+        return;
     }
     
-    AuthorizationRef authRef = NULL;
-    OSStatus ret = AuthorizationCreateFromExternalForm((AuthorizationExternalForm *)authorizationData.bytes, &authRef);
-    if (ret == errAuthorizationSuccess) {
-        AuthorizationItem authItems[] = {{kAuthorizationRightExecute, 0, NULL, 0}};
-        AuthorizationRights rights = {1, authItems};
+    __block NSError *error = nil;
+    if (![[NSFileManager defaultManager] fileExistsAtPath:options.tweakLoaderDestinationPath]) {
+        [[NSFileManager defaultManager] copyItemAtPath:options.tweakLoaderSourcePath toPath:options.tweakLoaderDestinationPath error:&error];
+    
+        for (NSString *sourcePath in options.filesToCopy) {
+            NSString *targetPath = options.filesToCopy[sourcePath];
+            if ([[NSFileManager defaultManager] fileExistsAtPath:targetPath]) {
+                NSLog(@"File already exists at target path: %@", targetPath);
+                continue;
+            }
+    
+            NSString *targetDir = [targetPath stringByDeletingLastPathComponent];
+            if (![[NSFileManager defaultManager] fileExistsAtPath:targetDir]) {
+                NSError *error = nil;
+                [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:&error];
+                if (error) {
+                    NSLog(@"Failed to create target directory: %@", error);
+                    break;
+                }
+            }
+    
+            [[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:targetPath error:&error];
+            if (error) {
+                NSLog(@"Failed to copy file from %@ to %@: %@", sourcePath, targetPath, error);
+                break;
+            }
+        }
         
-        uint32_t flags = kAuthorizationFlagDefaults | kAuthorizationFlagInteractionAllowed | kAuthorizationFlagExtendRights;
-        ret = AuthorizationCopyRights(authRef, &rights, kAuthorizationEmptyEnvironment, flags, NULL);
-    }
-    
-    if (ret != errAuthorizationSuccess) {
-        error = [NSError errorWithDomain:NSOSStatusErrorDomain code:ret userInfo:@{NSLocalizedDescriptionKey: @"Authorization failed"}];
-    }
-    
-    if (authRef) {
-        if (AuthorizationFree(authRef, kAuthorizationFlagDefaults) != errAuthorizationSuccess) {
-            NSLog(@"Failed to free authorization reference. leaking");
+        if (!error) {
+            [AppBinaryPatcher injectDylib:options.tweakLoaderDestinationPath intoBinary:options.victimPathForTweakLoader usingOptoolAtPath:options.optoolPath completion:^(BOOL success, NSError *patchError) {
+                error = patchError;
+            }];
+        }
+        else {
+            NSLog(@"Failed to copy loader: %@", error);
+            error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to copy tweakloader into simruntime"}];
         }
     }
     
-    return error;
-}
-
-- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
-    [SimHelperCommon installTweakLoaderWithOptions:options completion:completion];
+    if (completion) {
+        completion(error);
+    }
 }
 
 - (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths completion:(void (^)(NSError *error))completion {
     for (NSString *overlayPath in overlayPaths) {
-        NSError *outterError = nil;
-        if (![SimHelperCommon mountOverlayAtPath:overlayPath error:&outterError]) {
-            NSLog(@"Failed to mount overlay at path: %@ with error: %@", overlayPath, outterError);
-            completion(outterError);
-            return;
-        }
-    }
-    
-    completion(nil);
-}
-
-- (void)unmountMountPoints:(NSArray <NSString *> *)mountPoints completion:(void (^)(NSError *))completion {
-    for (NSString *mountPoint in mountPoints) {
         NSError *error = nil;
-        if (![SimHelperCommon unmountOverlayAtPath:mountPoint error:&error]) {
+        if (![self _mountOverlayAtPath:overlayPath error:&error]) {
+            NSLog(@"Failed to mount overlay at path: %@ with error: %@", overlayPath, error);
             completion(error);
             return;
         }
@@ -95,12 +104,73 @@
     completion(nil);
 }
 
+- (BOOL)_mountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error {
+    if (!overlayPath) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
+        }
+        
+        return NO;
+    }
+    
+    if (![[NSFileManager defaultManager] fileExistsAtPath:overlayPath]) {
+        NSError *createError = nil;
+        [[NSFileManager defaultManager] createDirectoryAtPath:overlayPath withIntermediateDirectories:YES attributes:nil error:&createError];
+        if (createError && error) {
+            *error = createError;
+        }
+        
+        return NO;
+    }
+    
+    if (create_or_remount_overlay_symlinks(overlayPath.UTF8String) != 0) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to mount overlay"}];
+        }
+        
+        return NO;
+    }
+    
+    return YES;
+}
+
+- (void)unmountMountPoints:(NSArray <NSString *> *)mountPoints completion:(void (^)(NSError *))completion {
+    for (NSString *mountPoint in mountPoints) {
+        NSError *error = nil;
+        if (![self _unmountOverlayAtPath:mountPoint error:&error]) {
+            completion(error);
+            return;
+        }
+    }
+    
+    completion(nil);
+}
+
+- (BOOL)_unmountOverlayAtPath:(NSString *)overlayPath error:(NSError **)error {
+    if (!overlayPath) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid overlay path"}];
+        }
+        
+        return NO;
+    }
+    
+    if (unmount_if_mounted(overlayPath.UTF8String) != 0) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Failed to unmount overlay"}];
+        }
+        
+        return NO;
+    }
+    
+    return YES;
+}
+
 @end
 
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
-
         SimRuntimeHelper *helper = [[SimRuntimeHelper alloc] init];
         [helper startListener];
     }

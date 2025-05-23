@@ -1,5 +1,5 @@
 //
-//  EABootedSimDevice.h
+//  BootedSimulatorWrapper.h
 //  simulator-trainer
 //
 //  Created by Ethan Arbuckle on 4/28/25.
@@ -15,8 +15,6 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) BOOL pendingReboot;
 
 + (BootedSimulatorWrapper * _Nullable)fromSimulatorWrapper:(SimulatorWrapper * _Nonnull)simDevice;
-+ (NSArray <id> * _Nullable)coreSimulatorDevices;
-+ (NSArray <SimulatorWrapper *> * _Nonnull)allDevices;
 
 - (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
 - (BOOL)hasOverlays;

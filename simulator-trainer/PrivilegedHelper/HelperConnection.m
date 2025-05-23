@@ -6,8 +6,8 @@
 //
 
 #import <ServiceManagement/ServiceManagement.h>
+#import "SimRuntimeHelperProtocol.h"
 #import "HelperConnection.h"
-#import "SimHelperCommon.h"
 
 @interface HelperConnection () {
     AuthorizationRef authRef;
@@ -123,6 +123,66 @@
     }
     
     return self.helperConnection;
+}
+
+- (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths completion:(void (^)(NSError * _Nullable error))completion {
+    NSXPCConnection *conn = [self getConnection];
+    if (!conn) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"XPC connection not available."}]);
+        }
+
+        return;
+    }
+
+    id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
+        NSLog(@"XPC proxy error (mountTmpfsOverlaysAtPaths): %@", proxyError);
+        if (completion) {
+            completion(proxyError);
+        }
+    }];
+    
+    [proxy mountTmpfsOverlaysAtPaths:overlayPaths completion:completion];
+}
+
+- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError * _Nullable error))completion {
+    NSXPCConnection *conn = [self getConnection];
+    if (!conn) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"XPC connection not available."}]);
+        }
+
+        return;
+    }
+
+    id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
+        NSLog(@"XPC proxy error (setupTweakInjectionWithOptions): %@", proxyError);
+        if (completion) {
+            completion(proxyError);
+        }
+    }];
+    
+    [proxy setupTweakInjectionWithOptions:options completion:completion];
+}
+
+- (void)unmountMountPoints:(NSArray<NSString *> *)mountPoints completion:(void (^)(NSError * _Nullable error))completion {
+    NSXPCConnection *conn = [self getConnection];
+    if (!conn) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"XPC connection not available."}]);
+        }
+
+        return;
+    }
+
+    id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
+        NSLog(@"XPC proxy error (unmountMountPoints): %@", proxyError);
+        if (completion) {
+            completion(proxyError);
+        }
+    }];
+    
+    [proxy unmountMountPoints:mountPoints completion:completion];
 }
 
 @end
