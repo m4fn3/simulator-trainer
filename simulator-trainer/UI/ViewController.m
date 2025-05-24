@@ -10,7 +10,11 @@
 #import "HelperConnection.h"
 #import "SimDeviceManager.h"
 #import "ViewController.h"
+#import "CommandRunner.h"
+#import "XCRunInterface.h"
 #import "SimLogging.h"
+#import "platform_changer.h"
+#import "AppBinaryPatcher.h"
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -66,6 +70,14 @@
     
     self.shutdownButton.target = self;
     self.shutdownButton.action = @selector(handleShutdownSelected:);
+    
+    self.installTweakButton.acceptedFileExtensions = @[@"deb"];
+    self.installTweakButton.target = self;
+    self.installTweakButton.action = @selector(handleInstallTweakSelected:);
+    __weak typeof(self) weakSelf = self;
+    self.installTweakButton.fileDroppedBlock = ^(NSURL *fileURL) {
+        [weakSelf processDebFileAtURL:fileURL];
+    };
     
     [self _populateDevicePopup];
     [self refreshDeviceList];
@@ -536,5 +548,165 @@
         [self _updateSelectedDeviceUI];
     });
 }
+
+- (void)processDebFileAtURL:(NSURL *)debURL {
+    NSLog(@"Processing deb file: %@", debURL);
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setStatus:@"Please select a booted device first."];
+        return;
+    }
+    
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
+    if (!bootedSim) {
+        [self setStatus:@"Selected device is not properly booted."];
+        return;
+    }
+
+    [self setStatus:[NSString stringWithFormat:@"Installing %@...", debURL.lastPathComponent]];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        NSError *installError = [self _installExtractedTweakFilesFromDebPath:debURL.path toSimulatorRuntime:bootedSim.runtimeRoot];
+        ON_MAIN_THREAD((^{
+            if (installError) {
+                [self setStatus:[NSString stringWithFormat:@"Install failed: %@", installError.localizedDescription]];
+            }
+            else {
+                [self setStatus:@"Installed"];
+                [self _updateSelectedDeviceUI];
+            }
+        }));
+    });
+}
+
+
+- (void)handleInstallTweakSelected:(id)sender {
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setStatus:@"Nothing selected"];
+        return;
+    }
+    
+    NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+    openPanel.canChooseFiles = YES;
+    openPanel.canChooseDirectories = NO;
+    openPanel.allowsMultipleSelection = NO;
+    openPanel.allowedFileTypes = @[@"deb"];
+    
+    [openPanel beginSheetModalForWindow:self.view.window completionHandler:^(NSModalResponse result) {
+        if (result == NSModalResponseOK) {
+            NSURL *debURL = openPanel.URL;
+            if (debURL) {
+                [self processDebFileAtURL:debURL];
+            }
+        }
+    }];
+}
+
+- (NSError * _Nullable)_installExtractedTweakFilesFromDebPath:(NSString *)debPath toSimulatorRuntime:(NSString *)simRuntimeRoot {
+    if (!simRuntimeRoot) {
+        return [NSError errorWithDomain:NSCocoaErrorDomain code:98 userInfo:@{NSLocalizedDescriptionKey: @"Simulator runtime root path is nil."}];
+    }
+    
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *tempExtractDir = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]];
+    NSString *dataTarExtractDir = [tempExtractDir stringByAppendingPathComponent:@"data_payload"];
+    NSError * __block operationError = nil;
+    
+    if (![fm createDirectoryAtPath:tempExtractDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
+        return operationError;
+    }
+    
+    void (^cleanupBlock)(void) = ^{
+        [fm removeItemAtPath:tempExtractDir error:nil];
+    };
+    
+    NSString *debFileName = [debPath lastPathComponent];
+    NSString *copiedDebPath = [tempExtractDir stringByAppendingPathComponent:debFileName];
+    if (![fm copyItemAtPath:debPath toPath:copiedDebPath error:&operationError]) {
+        cleanupBlock();
+        return operationError;
+    }
+    
+    if (![CommandRunner runCommand:@"/usr/bin/ar" withArguments:@[@"-x", copiedDebPath] cwd:tempExtractDir stdoutString:nil error:&operationError]) {
+        cleanupBlock();
+        return operationError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:101 userInfo:@{NSLocalizedDescriptionKey: @"Failed to extract .deb (ar command)"}];
+    }
+
+    NSString *dataTarName = nil;
+    NSArray *possibleDataTarNames = @[@"data.tar.gz", @"data.tar.xz", @"data.tar.zst", @"data.tar.bz2", @"data.tar,", @"data.tar.lzma"];
+    for (NSString *name in possibleDataTarNames) {
+        if ([fm fileExistsAtPath:[tempExtractDir stringByAppendingPathComponent:name]]) {
+            dataTarName = name;
+            break;
+        }
+    }
+    
+    if (!dataTarName) {
+        cleanupBlock();
+        return [NSError errorWithDomain:NSCocoaErrorDomain code:100 userInfo:@{NSLocalizedDescriptionKey: @"Could not find data.tar.* in .deb archive"}];
+    }
+    
+    NSString *dataTarPath = [tempExtractDir stringByAppendingPathComponent:dataTarName];
+    if (![fm createDirectoryAtPath:dataTarExtractDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
+        cleanupBlock();
+        return operationError;
+    }
+    
+    if (![CommandRunner runCommand:@"/usr/bin/tar" withArguments:@[@"-xf", dataTarPath, @"-C", dataTarExtractDir] stdoutString:nil error:&operationError]) {
+        cleanupBlock();
+        return operationError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:102 userInfo:@{NSLocalizedDescriptionKey: @"Failed to extract data.tar (tar command)"}];
+    }
+    
+    NSDirectoryEnumerator *dirEnumerator = [fm enumeratorAtPath:dataTarExtractDir];
+    NSString *fileRelativeInDataTar;
+    while ((fileRelativeInDataTar = [dirEnumerator nextObject])) {
+        NSString *sourcePath = [dataTarExtractDir stringByAppendingPathComponent:fileRelativeInDataTar];
+        
+        BOOL isDir;
+        if ([fm fileExistsAtPath:sourcePath isDirectory:&isDir] && !isDir) {
+            NSString *cleanedRelativePath = [fileRelativeInDataTar copy];
+            if ([cleanedRelativePath hasPrefix:@"./"]) {
+                cleanedRelativePath = [cleanedRelativePath substringFromIndex:2];
+            }
+            
+            NSString *destinationPath = [simRuntimeRoot stringByAppendingPathComponent:cleanedRelativePath];
+            NSString *destinationParentDir = [destinationPath stringByDeletingLastPathComponent];
+            
+            if (![fm fileExistsAtPath:destinationParentDir]) {
+                if (![fm createDirectoryAtPath:destinationParentDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
+                    cleanupBlock();
+                    return operationError;
+                }
+            }
+            
+            if ([fm fileExistsAtPath:destinationPath]) {
+                [fm removeItemAtPath:destinationPath error:NULL];
+            }
+            
+            if (![fm copyItemAtPath:sourcePath toPath:destinationPath error:&operationError]) {
+                NSLog(@"  copy error: %@", operationError);
+                cleanupBlock();
+                return operationError;
+            }
+            
+            if ([destinationPath.pathExtension isEqualToString:@"dylib"] && ![AppBinaryPatcher isBinaryArm64SimulatorCompatible:destinationPath]) {
+                // Convert to simulator platform and then codesign
+                [AppBinaryPatcher thinBinaryAtPath:destinationPath];
+                convertPlatformToSimulator(destinationPath.UTF8String);
+                
+                [AppBinaryPatcher codesignItemAtPath:destinationPath completion:^(BOOL success, NSError *error) {
+                    if (!success) {
+                        NSLog(@"Failed to codesign item at path: %@", error);
+                    }
+                    else {
+                        NSLog(@"Successfully codesigned item at path: %@", destinationPath);
+                    }
+                }];
+            }
+        }
+    }
+
+    cleanupBlock();
+    return nil;
+}
+
 
 @end

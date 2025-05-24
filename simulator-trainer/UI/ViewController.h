@@ -7,6 +7,7 @@
 
 #import <Cocoa/Cocoa.h>
 #import "SimulatorWrapper.h"
+#import "DropTargetButton.h"
 
 @interface ViewController : NSViewController <SimulatorWrapperDelegate>
 
@@ -17,7 +18,7 @@
 @property (nonatomic, weak) IBOutlet NSButton *rebootButton;
 @property (nonatomic, weak) IBOutlet NSButton *jailbreakButton;
 @property (nonatomic, weak) IBOutlet NSButton *removeJailbreakButton;
-@property (nonatomic, weak) IBOutlet NSButton *installTweakButton;
+@property (nonatomic, weak) IBOutlet DropTargetButton *installTweakButton;
 @property (nonatomic, weak) IBOutlet NSButton *installIPAButton;
 @property (nonatomic, weak) IBOutlet NSButton *bootButton;
 @property (nonatomic, weak) IBOutlet NSButton *shutdownButton;

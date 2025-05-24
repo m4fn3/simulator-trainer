@@ -792,7 +792,7 @@
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
                             </button>
-                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cUi-HB-qTp">
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cUi-HB-qTp" customClass="DropTargetButton">
                                 <rect key="frame" x="23" y="44" width="180" height="35"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="58F-eq-JBO">

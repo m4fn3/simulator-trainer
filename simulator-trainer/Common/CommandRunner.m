@@ -9,7 +9,11 @@
 
 @implementation CommandRunner
 
-+ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
++ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments stdoutString:(NSString * _Nullable * _Nullable)stdoutString error:(NSError ** _Nullable)error {
+    return [self runCommand:command withArguments:arguments cwd:nil stdoutString:stdoutString error:error];
+}
+
++ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments cwd:(NSString * _Nullable)cwdPath stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
     if (!command) {
         NSLog(@"No command provided to runCommand. Command %@, Arguments %@", command, arguments);
         if (errorOut) {
@@ -32,6 +36,10 @@
     NSPipe *errorPipe = [NSPipe pipe];
     task.standardError = errorPipe;
     task.environment = [[NSProcessInfo processInfo] environment];
+    
+    if (cwdPath) {
+        task.currentDirectoryPath = cwdPath;
+    }
 
     [task launch];
     [task waitUntilExit];

@@ -9,10 +9,6 @@
 #import "XCRunInterface.h"
 #import "CommandRunner.h"
 
-void dummy(void) {
-    
-}
-
 @implementation AppBinaryPatcher
 
 + (void)injectDylib:(NSString *)dylibPath intoBinary:(NSString *)binaryPath usingOptoolAtPath:(NSString *)optoolPath completion:(void (^ _Nullable)(BOOL success, NSError * _Nullable error))completion {

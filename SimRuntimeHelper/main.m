@@ -60,8 +60,9 @@
     
             NSString *targetDir = [targetPath stringByDeletingLastPathComponent];
             if (![[NSFileManager defaultManager] fileExistsAtPath:targetDir]) {
+
                 NSError *error = nil;
-                [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:nil error:&error];
+                [[NSFileManager defaultManager] createDirectoryAtPath:targetDir withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@(0777)} error:&error];
                 if (error) {
                     NSLog(@"Failed to create target directory: %@", error);
                     break;
@@ -96,6 +97,14 @@
         NSError *error = nil;
         if (![self _mountOverlayAtPath:overlayPath error:&error]) {
             NSLog(@"Failed to mount overlay at path: %@ with error: %@", overlayPath, error);
+            completion(error);
+            return;
+        }
+        
+        // Set permissions to allow the non-privileged app to read+write to the overlay
+        [[NSFileManager defaultManager] setAttributes:@{NSFilePosixPermissions: @(0777)} ofItemAtPath:overlayPath error:&error];
+        if (error) {
+            NSLog(@"Failed to set permissions for overlay at path: %@ with error: %@", overlayPath, error);
             completion(error);
             return;
         }
