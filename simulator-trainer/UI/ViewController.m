@@ -73,6 +73,9 @@
     self.shutdownButton.target = self;
     self.shutdownButton.action = @selector(handleShutdownSelected:);
     
+    self.openTweakFolderButton.target = self;
+    self.openTweakFolderButton.action = @selector(handleOpenTweakFolderSelected:);
+    
     self.installTweakButton.acceptedFileExtensions = @[@"deb"];
     self.installTweakButton.target = self;
     self.installTweakButton.action = @selector(handleInstallTweakSelected:);
@@ -177,7 +180,7 @@
     // iOS-platform device, with the last resort being to just select the first device
     for (int i = 0; i < allSimDevices.count; i++) {
         SimulatorWrapper *device = allSimDevices[i];
-        if (device.isBooted && [device isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)device hasInjection]) {
+        if (device.isBooted && [device isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)device isJailbroken]) {
             selectedDeviceIndex = i;
             break;
         }
@@ -448,7 +451,6 @@
 }
 
 - (void)processDebFileAtURL:(NSURL *)debURL {
-    NSLog(@"Processing deb file: %@", debURL);
     if (!selectedDevice || !selectedDevice.isBooted) {
         [self setStatus:@"Please select a booted device first."];
         return;
@@ -491,6 +493,28 @@
             }
         }
     }];
+}
+
+- (void)handleOpenTweakFolderSelected:(id)sender {
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setStatus:@"Nothing selected"];
+        return;
+    }
+    
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
+    if (!bootedSim.isJailbroken || !bootedSim.runtimeRoot) {
+        [self setStatus:@"Device not in expected state"];
+        return;
+    }
+    
+    NSString *tweakFolder = @"/Library/MobileSubstrate/DynamicLibraries/";
+    NSString *deviceTweakFolder = [bootedSim.runtimeRoot stringByAppendingPathComponent:tweakFolder];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:deviceTweakFolder]) {
+        [self setStatus:[NSString stringWithFormat:@"Tweak folder does not exist: %@", deviceTweakFolder]];
+        return;
+    }
+    
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:deviceTweakFolder]];
 }
 
 @end

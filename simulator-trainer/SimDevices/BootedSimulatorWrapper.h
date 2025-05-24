@@ -16,18 +16,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (BootedSimulatorWrapper * _Nullable)fromSimulatorWrapper:(SimulatorWrapper * _Nonnull)simDevice;
 
-- (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs;
-- (BOOL)hasOverlays;
-- (BOOL)hasInjection;
 - (NSString * _Nonnull)tweakLoaderDylibPath;
 - (NSArray <NSString *> *)directoriesToOverlay;
+- (NSDictionary *)bootstrapFilesToCopy;
 - (BOOL)isJailbroken;
-
-- (void)shutdownWithCompletion:(void (^ _Nullable)(NSError *error))completion;
 - (void)reboot;
 - (void)respring;
-
-- (NSDictionary *)bootstrapFilesToCopy;
+- (void)shutdownWithCompletion:(void (^ _Nullable)(NSError *error))completion;
 
 @end
 

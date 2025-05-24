@@ -709,7 +709,7 @@
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xs4-my-eQr">
-                                <rect key="frame" x="30" y="92" width="180" height="32"/>
+                                <rect key="frame" x="31" y="106" width="180" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Remove Jailbreak " bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="GuI-YD-90p">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -717,7 +717,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" id="uiX-qL-Esm">
-                                <rect key="frame" x="30" y="124" width="180" height="32"/>
+                                <rect key="frame" x="31" y="138" width="180" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Jailbreak" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5qW-eF-bkw">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -725,7 +725,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" id="fJQ-AO-gXb">
-                                <rect key="frame" x="209" y="124" width="180" height="32"/>
+                                <rect key="frame" x="209" y="106" width="180" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Respring" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="nFO-5J-Zvr">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -733,7 +733,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gwh-b7-7Ve">
-                                <rect key="frame" x="209" y="92" width="180" height="32"/>
+                                <rect key="frame" x="209" y="74" width="180" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Reboot" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="8vV-2Q-K9A">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -767,7 +767,7 @@
                                 <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSStatusNone" id="Wux-Lr-UGf"/>
                             </imageView>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9OG-HT-Z6H">
-                                <rect key="frame" x="216" y="44" width="180" height="35"/>
+                                <rect key="frame" x="216" y="26" width="180" height="35"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="fYx-Tx-j1S">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -777,7 +777,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" id="vET-5y-FCQ">
-                                <rect key="frame" x="209" y="156" width="95" height="32"/>
+                                <rect key="frame" x="209" y="138" width="95" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Boot" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5OV-gQ-X4u">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -785,7 +785,7 @@
                                 </buttonCell>
                             </button>
                             <button verticalHuggingPriority="750" id="IIW-vo-Gkt">
-                                <rect key="frame" x="294" y="156" width="95" height="32"/>
+                                <rect key="frame" x="294" y="138" width="95" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Shutdown" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="5eW-9b-dcR">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -793,13 +793,21 @@
                                 </buttonCell>
                             </button>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cUi-HB-qTp" customClass="DropTargetButton">
-                                <rect key="frame" x="23" y="44" width="180" height="35"/>
+                                <rect key="frame" x="23" y="26" width="180" height="35"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="58F-eq-JBO">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <string key="title">Install Tweak
 (Drag and Drop)</string>
                                     <font key="font" metaFont="smallSystem"/>
+                                </buttonCell>
+                            </button>
+                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="soG-LT-KPE">
+                                <rect key="frame" x="31" y="74" width="180" height="32"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="push" title="Tweak Folder" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="DJh-xA-ENo">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
                                 </buttonCell>
                             </button>
                         </subviews>
@@ -810,6 +818,7 @@
                         <outlet property="installIPAButton" destination="9OG-HT-Z6H" id="aqh-OA-Zdr"/>
                         <outlet property="installTweakButton" destination="cUi-HB-qTp" id="zCc-tt-wAC"/>
                         <outlet property="jailbreakButton" destination="uiX-qL-Esm" id="n2e-xr-Sfx"/>
+                        <outlet property="openTweakFolderButton" destination="soG-LT-KPE" id="ru4-Mk-Fpk"/>
                         <outlet property="rebootButton" destination="gwh-b7-7Ve" id="wZn-lC-ZOt"/>
                         <outlet property="removeJailbreakButton" destination="xs4-my-eQr" id="6UD-3h-i8m"/>
                         <outlet property="respringButton" destination="fJQ-AO-gXb" id="KtM-L2-EBg"/>
