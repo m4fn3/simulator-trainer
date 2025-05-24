@@ -8,8 +8,11 @@
 #import <Cocoa/Cocoa.h>
 #import "SimulatorWrapper.h"
 #import "DropTargetButton.h"
+#import "PackageInstallationService.h"
 
 @interface ViewController : NSViewController <SimulatorWrapperDelegate>
+
+@property (nonatomic, strong) PackageInstallationService *packageService;
 
 @property (nonatomic, weak) IBOutlet NSPopUpButton *devicePopup;
 @property (nonatomic, weak) IBOutlet NSImageView *statusImageView;

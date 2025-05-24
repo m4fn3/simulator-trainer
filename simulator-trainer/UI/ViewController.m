@@ -5,16 +5,13 @@
 //  Created by Ethan Arbuckle on 4/28/25.
 //
 
+#import "SimulatorOrchestrationService.h"
 #import "BootedSimulatorWrapper.h"
-#import "SimInjectionOptions.h"
-#import "HelperConnection.h"
 #import "SimDeviceManager.h"
+#import "HelperConnection.h"
 #import "ViewController.h"
-#import "CommandRunner.h"
-#import "XCRunInterface.h"
 #import "SimLogging.h"
-#import "platform_changer.h"
-#import "AppBinaryPatcher.h"
+
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -27,7 +24,9 @@
     NSArray *allSimDevices;
     SimulatorWrapper *selectedDevice;
     NSInteger selectedDeviceIndex;
+    
     HelperConnection *helperConnection;
+    SimulatorOrchestrationService *orchestrator;
 }
 
 @end
@@ -40,6 +39,9 @@
         selectedDevice = nil;
         selectedDeviceIndex = -1;
         helperConnection = [[HelperConnection alloc] init];
+        orchestrator = [[SimulatorOrchestrationService alloc] initWithHelperConnection:helperConnection];
+        
+        self.packageService = [[PackageInstallationService alloc] init];
         
         [SimLogging observeSimulatorLogs];
     }
@@ -196,17 +198,28 @@
     [self popupListDidSelectDevice:self.devicePopup];
 }
 
+- (void)_disableDeviceButtons {
+    self.jailbreakButton.enabled = NO;
+    self.removeJailbreakButton.enabled = NO;
+    self.rebootButton.enabled = NO;
+    self.respringButton.enabled = NO;
+    self.installIPAButton.enabled = NO;
+    self.installTweakButton.enabled = NO;
+    self.bootButton.enabled = NO;
+    self.shutdownButton.enabled = NO;
+}
+
 - (void)_updateSelectedDeviceUI {
     ON_MAIN_THREAD(^{
         // Update the device buttons and labels based on the selected device
         if (!self->selectedDevice) {
             // No device selected -- disable buttons
-            [self disableDeviceButtons];
+            [self _disableDeviceButtons];
             return;
         }
         
         // Start with everything disabled
-        [self disableDeviceButtons];
+        [self _disableDeviceButtons];
         
         self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusUnavailable];
         self.tweakStatus.stringValue = @"No active device";
@@ -281,182 +294,67 @@
 }
 
 - (void)handleRebootSelected:(NSButton *)sender {
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (!self->selectedDevice.isBooted) {
-        [self setStatus:@"Device not booted"];
-        return;
-    }
-    
-    NSLog(@"Rebooting device: %@", self->selectedDevice);
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
-    [bootedSim reboot];
-}
-
-- (void)handleBootSelected:(NSButton *)sender {
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (self->selectedDevice.isBooted) {
-        [self setStatus:@"Already booted"];
-        return;
-    }
-    
-    [self setStatus:@"Booting device"];
-    [self->selectedDevice bootWithCompletion:nil];
-}
-
-- (void)handleShutdownSelected:(NSButton *)sender {
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (!self->selectedDevice.isBooted) {
-        [self setStatus:@"Device not booted"];
-        return;
-    }
-    
-    [self setStatus:@"Shutting down device"];
-
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
-    [bootedSim shutdownWithCompletion:nil];
-}
-
-- (void)disableDeviceButtons {
-    self.jailbreakButton.enabled = NO;
-    self.removeJailbreakButton.enabled = NO;
-    self.rebootButton.enabled = NO;
-    self.respringButton.enabled = NO;
-    self.installIPAButton.enabled = NO;
-    self.installTweakButton.enabled = NO;
-    self.bootButton.enabled = NO;
-    self.shutdownButton.enabled = NO;
-}
-
-- (void)handleDoJailbreakSelected:(NSButton *)sender {
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (!self->selectedDevice.isBooted) {
-        [self setStatus:@"Device not booted"];
-        return;
-    }
-    
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
-    if ([bootedSim isJailbroken]) {
-        [self setStatus:@"Device already jailbroken"];
-        return;
-    }
-    
-    self.jailbreakButton.enabled = NO;
-    [self setStatus:@"Jailbreaking..."];
-
-    [self->helperConnection mountTmpfsOverlaysAtPaths:[bootedSim directoriesToOverlay] completion:^(NSError *error) {
+    [self setStatus:@"Rebooting device"];
+    [self->orchestrator rebootDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError *error) {
         if (error) {
-            [self device:bootedSim jailbreakFinished:NO error:error];
-        }
-        else {
-            [self _helper_didMountOverlaysOnDevice:bootedSim];
+            [self setStatus:[NSString stringWithFormat:@"Failed to reboot: %@", error]];
         }
     }];
 }
 
-- (void)_helper_didMountOverlaysOnDevice:(BootedSimulatorWrapper *)bootedSim {
-    SimInjectionOptions *options = [[SimInjectionOptions alloc] init];
-    options.tweakLoaderDestinationPath = [bootedSim tweakLoaderDylibPath];
-    options.victimPathForTweakLoader = [bootedSim libObjcPath];
-    options.tweakLoaderSourcePath = [[NSBundle mainBundle] pathForResource:@"loader" ofType:@"dylib"];
-    options.optoolPath = [[NSBundle mainBundle] pathForResource:@"optool" ofType:nil];
-    options.filesToCopy = bootedSim.bootstrapFilesToCopy;
-
-    [self->helperConnection setupTweakInjectionWithOptions:options completion:^(NSError *error) {
+- (void)handleBootSelected:(NSButton *)sender {
+    [self setStatus:@"Booting"];
+    [self->orchestrator bootDevice:self->selectedDevice completion:^(BootedSimulatorWrapper * _Nullable bootedDevice, NSError * _Nullable error) {
         if (error) {
-            [self device:bootedSim jailbreakFinished:NO error:error];
+            [self setStatus:[NSString stringWithFormat:@"Failed to boot: %@", error]];
         }
-        else {
-            [bootedSim reloadDeviceState];
+    }];
+}
 
-            BOOL jbSuccess = !error && [bootedSim isJailbroken];
-            [self device:bootedSim jailbreakFinished:jbSuccess error:error];
+- (void)handleShutdownSelected:(NSButton *)sender {
+    [self setStatus:@"Shutting down"];
+    [self->orchestrator shutdownDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError *error) {
+        if (error) {
+            [self setStatus:[NSString stringWithFormat:@"Failed to shutdown: %@", error]];
         }
+    }];
+}
+
+- (void)handleDoJailbreakSelected:(NSButton *)sender {
+    [self setStatus:@"Applying jb..."];
+    self.jailbreakButton.enabled = NO;
+    [self->orchestrator applyJailbreakToDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(BOOL success, NSError * _Nullable error) {
+        [self device:self->selectedDevice jailbreakFinished:success error:error];
     }];
 }
 
 - (void)handleRemoveJailbreakSelected:(NSButton *)sender {
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (!self->selectedDevice.isBooted) {
-        [self setStatus:@"Device not booted"];
-        return;
-    }
-    
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
-    if (![bootedSim isJailbroken]) {
-        [self setStatus:@"Device not jailbroken"];
-        return;
-    }
-
-    self.removeJailbreakButton.enabled = NO;
-    self.jailbreakButton.enabled = NO;
-    self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
-    
-    NSXPCConnection *conn = [self->helperConnection getConnection];
-    [[conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
-        NSLog(@"Unjailbreak remoteObjectProxyWithErrorHandler error: %@", proxyError);
-        [self setStatus:@"Failed to connect to helper"];
+    [self setStatus:@"Removing jb..."];
+    [self->orchestrator removeJailbreakFromDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(BOOL success, NSError * _Nullable error) {
+        ON_MAIN_THREAD((^{
+            if (error) {
+                [self setStatus:[NSString stringWithFormat:@"Failed to remove jailbreak: %@", error]];
+                self.removeJailbreakButton.enabled = YES;
+            }
+            else {
+                [self setStatus:@"Removed jailbreak"];
+                self.removeJailbreakButton.enabled = NO;
+                self.jailbreakButton.enabled = YES;
+            }
+        }));
         
         [self refreshDeviceList];
-        
-    }] unmountMountPoints:[bootedSim directoriesToOverlay] completion:^(NSError *unmountError) {
-        if (unmountError) {
-            NSLog(@"Unjailbreak unmountMountPoints error: %@", unmountError);
-            [self setStatus:@"Failed to unmount overlays"];
-            
-            [self refreshDeviceList];
-        }
-
-        [bootedSim shutdownWithCompletion:^(NSError *shutdownError) {
-            if (shutdownError) {
-                NSLog(@"Unjailbreak shutdownWithCompletion error: %@", shutdownError);
-                [self setStatus:@"Failed to shutdown device"];
-                
-                [self refreshDeviceList];
-            }
-
-            [bootedSim bootWithCompletion:^(NSError *bootError) {
-                [self setStatus:@"Jailbreak removed"];
-                [self refreshDeviceList];
-                [self _updateSelectedDeviceUI];
-            }];
-        }];
+        [self _updateSelectedDeviceUI];
     }];
 }
 
 - (void)handleRespringSelected:(NSButton *)sender {
-    NSLog(@"Respring selected");
-    if (!self->selectedDevice) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    if (!self->selectedDevice.isBooted) {
-        [self setStatus:@"Device not booted"];
-        return;
-    }
-    
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
-    [bootedSim respring];
+    [self setStatus:@"Respringing device"];
+    [self->orchestrator respringDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError * _Nullable error) {
+        if (error) {
+            [self setStatus:[NSString stringWithFormat:@"Failed to respring: %@", error]];
+        }
+    }];
 }
 
 - (void)setStatus:(NSString *)statusText {
@@ -563,20 +461,15 @@
     }
 
     [self setStatus:[NSString stringWithFormat:@"Installing %@...", debURL.lastPathComponent]];
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        NSError *installError = [self _installExtractedTweakFilesFromDebPath:debURL.path toSimulatorRuntime:bootedSim.runtimeRoot];
-        ON_MAIN_THREAD((^{
-            if (installError) {
-                [self setStatus:[NSString stringWithFormat:@"Install failed: %@", installError.localizedDescription]];
-            }
-            else {
-                [self setStatus:@"Installed"];
-                [self _updateSelectedDeviceUI];
-            }
-        }));
-    });
+    [self.packageService installDebFileAtPath:debURL.path toDevice:bootedSim completion:^(NSError * _Nullable error) {
+        if (error) {
+            [self setStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
+        } else {
+            [self setStatus:@"Installed"];
+            [self _updateSelectedDeviceUI];
+        }
+    }];
 }
-
 
 - (void)handleInstallTweakSelected:(id)sender {
     if (!selectedDevice || !selectedDevice.isBooted) {
@@ -599,114 +492,5 @@
         }
     }];
 }
-
-- (NSError * _Nullable)_installExtractedTweakFilesFromDebPath:(NSString *)debPath toSimulatorRuntime:(NSString *)simRuntimeRoot {
-    if (!simRuntimeRoot) {
-        return [NSError errorWithDomain:NSCocoaErrorDomain code:98 userInfo:@{NSLocalizedDescriptionKey: @"Simulator runtime root path is nil."}];
-    }
-    
-    NSFileManager *fm = [NSFileManager defaultManager];
-    NSString *tempExtractDir = [NSTemporaryDirectory() stringByAppendingPathComponent:[[NSUUID UUID] UUIDString]];
-    NSString *dataTarExtractDir = [tempExtractDir stringByAppendingPathComponent:@"data_payload"];
-    NSError * __block operationError = nil;
-    
-    if (![fm createDirectoryAtPath:tempExtractDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
-        return operationError;
-    }
-    
-    void (^cleanupBlock)(void) = ^{
-        [fm removeItemAtPath:tempExtractDir error:nil];
-    };
-    
-    NSString *debFileName = [debPath lastPathComponent];
-    NSString *copiedDebPath = [tempExtractDir stringByAppendingPathComponent:debFileName];
-    if (![fm copyItemAtPath:debPath toPath:copiedDebPath error:&operationError]) {
-        cleanupBlock();
-        return operationError;
-    }
-    
-    if (![CommandRunner runCommand:@"/usr/bin/ar" withArguments:@[@"-x", copiedDebPath] cwd:tempExtractDir stdoutString:nil error:&operationError]) {
-        cleanupBlock();
-        return operationError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:101 userInfo:@{NSLocalizedDescriptionKey: @"Failed to extract .deb (ar command)"}];
-    }
-
-    NSString *dataTarName = nil;
-    NSArray *possibleDataTarNames = @[@"data.tar.gz", @"data.tar.xz", @"data.tar.zst", @"data.tar.bz2", @"data.tar,", @"data.tar.lzma"];
-    for (NSString *name in possibleDataTarNames) {
-        if ([fm fileExistsAtPath:[tempExtractDir stringByAppendingPathComponent:name]]) {
-            dataTarName = name;
-            break;
-        }
-    }
-    
-    if (!dataTarName) {
-        cleanupBlock();
-        return [NSError errorWithDomain:NSCocoaErrorDomain code:100 userInfo:@{NSLocalizedDescriptionKey: @"Could not find data.tar.* in .deb archive"}];
-    }
-    
-    NSString *dataTarPath = [tempExtractDir stringByAppendingPathComponent:dataTarName];
-    if (![fm createDirectoryAtPath:dataTarExtractDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
-        cleanupBlock();
-        return operationError;
-    }
-    
-    if (![CommandRunner runCommand:@"/usr/bin/tar" withArguments:@[@"-xf", dataTarPath, @"-C", dataTarExtractDir] stdoutString:nil error:&operationError]) {
-        cleanupBlock();
-        return operationError ?: [NSError errorWithDomain:NSCocoaErrorDomain code:102 userInfo:@{NSLocalizedDescriptionKey: @"Failed to extract data.tar (tar command)"}];
-    }
-    
-    NSDirectoryEnumerator *dirEnumerator = [fm enumeratorAtPath:dataTarExtractDir];
-    NSString *fileRelativeInDataTar;
-    while ((fileRelativeInDataTar = [dirEnumerator nextObject])) {
-        NSString *sourcePath = [dataTarExtractDir stringByAppendingPathComponent:fileRelativeInDataTar];
-        
-        BOOL isDir;
-        if ([fm fileExistsAtPath:sourcePath isDirectory:&isDir] && !isDir) {
-            NSString *cleanedRelativePath = [fileRelativeInDataTar copy];
-            if ([cleanedRelativePath hasPrefix:@"./"]) {
-                cleanedRelativePath = [cleanedRelativePath substringFromIndex:2];
-            }
-            
-            NSString *destinationPath = [simRuntimeRoot stringByAppendingPathComponent:cleanedRelativePath];
-            NSString *destinationParentDir = [destinationPath stringByDeletingLastPathComponent];
-            
-            if (![fm fileExistsAtPath:destinationParentDir]) {
-                if (![fm createDirectoryAtPath:destinationParentDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
-                    cleanupBlock();
-                    return operationError;
-                }
-            }
-            
-            if ([fm fileExistsAtPath:destinationPath]) {
-                [fm removeItemAtPath:destinationPath error:NULL];
-            }
-            
-            if (![fm copyItemAtPath:sourcePath toPath:destinationPath error:&operationError]) {
-                NSLog(@"  copy error: %@", operationError);
-                cleanupBlock();
-                return operationError;
-            }
-            
-            if ([destinationPath.pathExtension isEqualToString:@"dylib"] && ![AppBinaryPatcher isBinaryArm64SimulatorCompatible:destinationPath]) {
-                // Convert to simulator platform and then codesign
-                [AppBinaryPatcher thinBinaryAtPath:destinationPath];
-                convertPlatformToSimulator(destinationPath.UTF8String);
-                
-                [AppBinaryPatcher codesignItemAtPath:destinationPath completion:^(BOOL success, NSError *error) {
-                    if (!success) {
-                        NSLog(@"Failed to codesign item at path: %@", error);
-                    }
-                    else {
-                        NSLog(@"Successfully codesigned item at path: %@", destinationPath);
-                    }
-                }];
-            }
-        }
-    }
-
-    cleanupBlock();
-    return nil;
-}
-
 
 @end

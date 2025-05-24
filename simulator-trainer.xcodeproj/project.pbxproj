@@ -62,6 +62,7 @@
 				PrivilegedHelper/SimRuntimeHelperProtocol.m,
 				SimDevices/BootedSimulatorWrapper.m,
 				SimDevices/SimDeviceManager.m,
+				SimDevices/SimulatorOrchestrationService.m,
 				SimDevices/SimulatorWrapper.m,
 			);
 			target = 5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */;
@@ -489,6 +490,10 @@
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
@@ -525,6 +530,10 @@
 				);
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",

@@ -6,6 +6,7 @@
 //
 
 #import <Foundation/Foundation.h>
+#import "SimInjectionOptions.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
