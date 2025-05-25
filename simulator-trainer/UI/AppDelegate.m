@@ -10,7 +10,10 @@
 #import <objc/runtime.h>
 #import <objc/message.h>
 #import <dlfcn.h>
+
 #import "CommandRunner.h"
+#import "dylib_conversion.h"
+#import "AppBinaryPatcher.h"
 
 @interface AppDelegate ()
 @property (nonatomic, strong) id simulatorDelegate;
@@ -19,57 +22,123 @@
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    [self setupSimulator];
+    [self convertSimulatorToDylibWithCompletion:^(NSString *dylibPath) {
+        if (dylibPath) {
+            [self launchSimulatorFromDylib:dylibPath];
+        } else {
+            NSLog(@"Failed to convert Simulator.app to dylib");
+        }
+    }];
 }
 
-- (void)setupSimulator {
+- (NSString *)simulatorBundlePath {
+    static NSString *simulatorBundlePath = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        NSString *xcodeDeveloperPath = nil;
+        [CommandRunner runCommand:@"/usr/bin/xcode-select" withArguments:@[@"--print-path"] stdoutString:&xcodeDeveloperPath error:nil];
+        if (!xcodeDeveloperPath || ![xcodeDeveloperPath hasSuffix:@"/Contents/Developer"]) {
+            NSLog(@"Failed to get Xcode Developer path -- cannot find Simulator.app");
+        }
+        else {
+            simulatorBundlePath = [xcodeDeveloperPath stringByAppendingPathComponent:@"Applications/Simulator.app"];
+        }
+    });
     
-    NSString *xcodeDeveloperPath = nil;
-    [CommandRunner runCommand:@"/usr/bin/xcode-select" withArguments:@[@"--print-path"] stdoutString:&xcodeDeveloperPath error:nil];
-    if (!xcodeDeveloperPath || ![xcodeDeveloperPath hasSuffix:@"/Contents/Developer"]) {
-        NSLog(@"Xcode Developer path is not set correctly.");
+    return simulatorBundlePath;
+}
+
+- (void)convertSimulatorToDylibWithCompletion:(void (^)(NSString *dylibPath))completion {
+    // Make a copy of the Simulator.app executable at $TMPDIR/Simulator.dylib
+    NSString *simulatorExecutablePath = [[self simulatorBundlePath] stringByAppendingPathComponent:@"Contents/MacOS/Simulator"];
+    NSString *simulatorDylibPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"Simulator.dylib"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorExecutablePath]) {
+        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+    }
+    [[NSFileManager defaultManager] copyItemAtPath:simulatorExecutablePath toPath:simulatorDylibPath error:nil];
+
+    // Convert the simulator executable into a dylib (in-place)
+    [AppBinaryPatcher thinBinaryAtPath:simulatorDylibPath];
+    if (!convert_to_dylib_inplace(simulatorDylibPath.UTF8String)) {
+        NSLog(@"Failed to convert Simulator.app to dylib");
+        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
         return;
     }
     
-    NSString *simulatorPath = [xcodeDeveloperPath stringByAppendingPathComponent:@"Applications/Simulator.app"];
-    NSString *simulatorExecutablePath = [simulatorPath stringByAppendingPathComponent:@"Contents/MacOS/Simulator"];
+    // Then codesign the dylib
+    [AppBinaryPatcher codesignItemAtPath:simulatorDylibPath completion:^(BOOL success, NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"Failed to codesign Simulator dylib: %@", error);
+            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+            return;
+        }
+        
+        // Simulator requires @rpath/SimulatorKit.framework. @loader_path/ was added as an rpath during dylib conversion, which makes dyld
+        // consider the dylib's parent directory as a framework search path. Create a symlink next to the dylib, pointing to the real SimulatorKit.framework
+        
+        // Find the real SimulatorKit.framework, relative to the Simulator.app bundle path
+        NSArray *simulatorBundlePathComponents = [[self simulatorBundlePath] pathComponents];
+        NSString *xcodeDeveloperDir = [[simulatorBundlePathComponents subarrayWithRange:NSMakeRange(0, simulatorBundlePathComponents.count - 2)] componentsJoinedByString:@"/"];
+        NSString *simulatorKitFrameworkPath = [xcodeDeveloperDir stringByAppendingPathComponent:@"Library/PrivateFrameworks/SimulatorKit.framework"];
+        if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorKitFrameworkPath]) {
+            NSLog(@"SimulatorKit.framework not found at expected path: %@", simulatorKitFrameworkPath);
+            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+            return;
+        }
+        
+        NSString *simulatorKitSymlinkPath = [[simulatorDylibPath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"SimulatorKit.framework"];
+        NSError *symlinkError = nil;
+        if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorKitSymlinkPath]) {
+            [[NSFileManager defaultManager] createSymbolicLinkAtPath:simulatorKitSymlinkPath withDestinationPath:simulatorKitFrameworkPath error:&symlinkError];
+        }
+        
+        if (completion) {
+            completion(simulatorDylibPath);
+        }
+    }];
+}
+
+- (void)launchSimulatorFromDylib:(NSString *)simulatorDylibPath {
+    void *simHandle = dlopen([simulatorDylibPath UTF8String], 0);
+    if (simHandle == NULL) {
+        NSLog(@"Failed to load Simulator dylib: %s", dlerror());
+        return;
+    }
     
+    Class _SimulatorDeviceWindow = objc_getClass("_TtC9Simulator12DeviceWindow");
+    Class _SimulatorAppDelegate = objc_getClass("SimulatorAppDelegate");
+    if (!_SimulatorDeviceWindow || !_SimulatorAppDelegate) {
+        NSLog(@"Failed to find Simulator classes");
+        return;
+    }
+    
+    // -[NSBundle mainBundle] needs to return Simulator.app's real bundle
     Method mainBundleMethod = class_getClassMethod([NSBundle class], @selector(mainBundle));
     IMP originalMainBundleIMP = method_getImplementation(mainBundleMethod);
     IMP swizzledMainBundleIMP = imp_implementationWithBlock(^(id _self) {
-        NSBundle *simulatorBundle = [NSBundle bundleWithPath:simulatorPath];
+        NSBundle *simulatorBundle = [NSBundle bundleWithPath:[self simulatorBundlePath]];
         if (simulatorBundle) {
             return simulatorBundle;
         }
 
         return ((NSBundle *(*)(id, SEL))originalMainBundleIMP)(_self, @selector(mainBundle));
     });
-    
     method_setImplementation(mainBundleMethod, swizzledMainBundleIMP);
     
+    // Override some NSUserDefaults preferences
     Method boolForKeyMethod = class_getInstanceMethod([NSUserDefaults class], @selector(boolForKey:));
     IMP originalBoolForKeyIMP = method_getImplementation(boolForKeyMethod);
     IMP swizzledBoolForKeyIMP = imp_implementationWithBlock(^(id _self, NSString *key) {
-    
-        if ([@[@"CarPlayExtraOptions", @"DebugLogging", @"ShowFPS"] containsObject:key]) {
+        if ([@[@"CarPlayExtraOptions", @"DebugLogging"] containsObject:key]) {
             return YES;
         }
         
-        BOOL result = ((BOOL (*)(id, SEL, NSString *))originalBoolForKeyIMP)(_self, @selector(boolForKey:), key);
-        return result;
+        return ((BOOL (*)(id, SEL, NSString *))originalBoolForKeyIMP)(_self, @selector(boolForKey:), key);
     });
     method_setImplementation(boolForKeyMethod, swizzledBoolForKeyIMP);
     
-    void *simhandle = dlopen("/Users/ethanarbuckle/Desktop/Simulator", 0);
-    if (simhandle == NULL) {
-        NSLog(@"Failed to load Simulator framework: %s", dlerror());
-        return;
-    }
-    
-    Class _SimulatorDeviceWindow = objc_getClass("_TtC9Simulator12DeviceWindow");
-    SEL _performDragOperationSelector = sel_registerName("performDragOperation:");
-    
-    Method performDragOperationMethod = class_getInstanceMethod(_SimulatorDeviceWindow, _performDragOperationSelector);
+    // Swizzle file drag-and-drop operation to add support for debs/tweaks
+    Method performDragOperationMethod = class_getInstanceMethod(_SimulatorDeviceWindow, sel_registerName("performDragOperation:"));
     IMP originalPerformDragOperationIMP = method_getImplementation(performDragOperationMethod);
     IMP newPerformDragOperationIMP = imp_implementationWithBlock(^(id _self, id <NSDraggingInfo> sender) {
         
@@ -90,29 +159,18 @@
             return NO;
         }
 
-        return ((BOOL (*)(id, SEL, id))originalPerformDragOperationIMP)(_self, _performDragOperationSelector, sender);
+        return ((BOOL (*)(id, SEL, id))originalPerformDragOperationIMP)(_self, sel_registerName("performDragOperation:"), sender);
     });
     method_setImplementation(performDragOperationMethod, newPerformDragOperationIMP);
     
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        Class _SimulatorAppDelegate = objc_getClass("SimulatorAppDelegate");
-        if (!_SimulatorAppDelegate) {
-            NSLog(@"SimulatorAppDelegate class not found");
-            return;
-        }
-        
-        self.simulatorDelegate = [[_SimulatorAppDelegate alloc] init];
-        ((void (*)(id, SEL, id))objc_msgSend)(self.simulatorDelegate, sel_registerName("applicationDidFinishLaunching:"), nil);
-        
-        NSBundle *simBundle = [NSBundle bundleWithPath:@"/Applications/Xcode.app/Contents/Developer/Applications/Simulator.app"];
-        NSArray *topObjects = nil;
-        [simBundle loadNibNamed:@"MainMenu" owner:NSApp topLevelObjects:&topObjects];
-        
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            id appleInternalMenuItem = ((id (*)(id, SEL))objc_msgSend)(self.simulatorDelegate, sel_registerName("dockMenu"));
-            NSLog(@"Apple Internal Menu Item: %@", appleInternalMenuItem);
-        });
-    });
+    // Create Simulator's AppDelegate, trigger applicationDidFinishLaunching flow (does a bunch of setup)
+    self.simulatorDelegate = [[_SimulatorAppDelegate alloc] init];
+    ((void (*)(id, SEL, id))objc_msgSend)(self.simulatorDelegate, sel_registerName("applicationDidFinishLaunching:"), nil);
+    
+    // Load the MainMenu.xib from Simulator.app bundle. This populates the menu bar with the Simulator's menu items
+    NSBundle *simBundle = [NSBundle bundleWithPath:[self simulatorBundlePath]];
+    NSArray *topObjects = nil;
+    [simBundle loadNibNamed:@"MainMenu" owner:NSApp topLevelObjects:&topObjects];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
