@@ -41,7 +41,7 @@
 - (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
     if (!options || !options.tweakLoaderSourcePath || !options.tweakLoaderDestinationPath || !options.victimPathForTweakLoader) {
         if (completion) {
-            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey: @"Invalid options"}];
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Invalid options: %@", options]}];
             completion(error);
         }
         return;

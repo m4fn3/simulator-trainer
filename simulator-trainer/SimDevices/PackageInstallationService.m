@@ -147,15 +147,14 @@
                     if (!success) {
                         NSLog(@"Failed to codesign item at path: %@", error);
                     }
-                    else {
-                        NSLog(@"Successfully codesigned item at path: %@", destinationPath);
-                    }
                 }];
             }
         }
     }
 
     cleanupBlock();
+
+    [device respring];
 
     if (completion) {
         completion(nil);

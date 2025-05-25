@@ -112,20 +112,34 @@
         return;
     }
     
-    // -[NSBundle mainBundle] needs to return Simulator.app's real bundle
+    static NSBundle *simulatorBundle = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        simulatorBundle = [NSBundle bundleWithPath:[self simulatorBundlePath]];
+        if (!simulatorBundle) {
+            NSLog(@"Failed to load Simulator.app bundle");
+            return;
+        }
+    });
+
+    // Swizzle +[NSBundle mainBundle] to handle Simulator.dylib expecting to get its own bundle path.
+    // It breaks if it receives the real main app (this app) bundle path instead
     Method mainBundleMethod = class_getClassMethod([NSBundle class], @selector(mainBundle));
     IMP originalMainBundleIMP = method_getImplementation(mainBundleMethod);
     IMP swizzledMainBundleIMP = imp_implementationWithBlock(^(id _self) {
-        NSBundle *simulatorBundle = [NSBundle bundleWithPath:[self simulatorBundlePath]];
-        if (simulatorBundle) {
-            return simulatorBundle;
+        // Get the address of whatever is calling mainBundle, then find the image path for that address.
+        void *caller = __builtin_return_address(0);
+        Dl_info info;
+        if (dladdr(caller, &info) && info.dli_fname && strstr(info.dli_fname, "trainer")) {
+            NSLog(@"Swizzled mainBundle called from actual main executable: %s", info.dli_fname);
+            return ((NSBundle *(*)(id, SEL))originalMainBundleIMP)(_self, @selector(mainBundle));
         }
 
-        return ((NSBundle *(*)(id, SEL))originalMainBundleIMP)(_self, @selector(mainBundle));
+        return simulatorBundle;
     });
     method_setImplementation(mainBundleMethod, swizzledMainBundleIMP);
     
-    // Override some NSUserDefaults preferences
+    // Set some prefs
     Method boolForKeyMethod = class_getInstanceMethod([NSUserDefaults class], @selector(boolForKey:));
     IMP originalBoolForKeyIMP = method_getImplementation(boolForKeyMethod);
     IMP swizzledBoolForKeyIMP = imp_implementationWithBlock(^(id _self, NSString *key) {
@@ -155,7 +169,8 @@
         
         NSString *realPath = [[files firstObject] URLByResolvingSymlinksInPath].path;
         if ([[realPath pathExtension] isEqualToString:@"deb"]) {
-            NSLog(@"Installing a tweak");
+            NSLog(@"Installing a tweak: %@", realPath);
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"InstallTweakNotification" object:realPath];
             return NO;
         }
 

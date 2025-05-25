@@ -83,6 +83,15 @@
     self.installTweakButton.fileDroppedBlock = ^(NSURL *fileURL) {
         [weakSelf processDebFileAtURL:fileURL];
     };
+
+    [NSNotificationCenter.defaultCenter addObserverForName:@"InstallTweakNotification" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSString *debPath = notification.object;
+        if (!debPath || debPath.length == 0) {
+            return;
+        }
+        
+        [self processDebFileAtURL:[NSURL fileURLWithPath:debPath]];
+    }];
     
     [self _populateDevicePopup];
     [self refreshDeviceList];
@@ -503,7 +512,7 @@
     
     BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
     if (!bootedSim.isJailbroken || !bootedSim.runtimeRoot) {
-        [self setStatus:@"Device not in expected state"];
+        [self setStatus:@"Jailbreak not active"];
         return;
     }
     
