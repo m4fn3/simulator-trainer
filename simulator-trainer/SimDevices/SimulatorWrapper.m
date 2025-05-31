@@ -166,7 +166,7 @@
             // Boot completed
 
             // Open the simulator GUI app so the simruntime can't sneak-run in the bg
-            [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"/usr/bin/open", @"-a", @"Simulator"]];
+//            [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"/usr/bin/open", @"-a", @"Simulator"]];
             
             // Done booting (or failed to boot), notify the delegate if needed.
             if (bootingForReboot && [self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {

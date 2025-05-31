@@ -6,12 +6,10 @@
 //
 
 #import "SimulatorOrchestrationService.h"
-#import "BootedSimulatorWrapper.h"
 #import "SimDeviceManager.h"
 #import "HelperConnection.h"
 #import "ViewController.h"
 #import "SimLogging.h"
-
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -51,7 +49,7 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-
+    
     self.devicePopup.target = self;
     self.devicePopup.action = @selector(popupListDidSelectDevice:);
     
@@ -83,7 +81,7 @@
     self.installTweakButton.fileDroppedBlock = ^(NSURL *fileURL) {
         [weakSelf processDebFileAtURL:fileURL];
     };
-
+    
     [NSNotificationCenter.defaultCenter addObserverForName:@"InstallTweakNotification" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
         NSString *debPath = notification.object;
         if (!debPath || debPath.length == 0) {
@@ -219,6 +217,7 @@
     self.installTweakButton.enabled = NO;
     self.bootButton.enabled = NO;
     self.shutdownButton.enabled = NO;
+    self.openTweakFolderButton.enabled = NO;
 }
 
 - (void)_updateSelectedDeviceUI {
@@ -248,6 +247,7 @@
                 self.respringButton.enabled = YES;
                 self.installIPAButton.enabled = YES;
                 self.installTweakButton.enabled = YES;
+                self.openTweakFolderButton.enabled = YES;
                 self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusAvailable];
                 self.tweakStatus.stringValue = @"Injection active";
             }
@@ -262,8 +262,6 @@
         else {
             // Device is not booted: enable boot button
             self.bootButton.enabled = YES;
-            self.rebootButton.enabled = NO;
-            self.shutdownButton.enabled = NO;
         }
     });
 }
@@ -365,6 +363,9 @@
     [self->orchestrator respringDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError * _Nullable error) {
         if (error) {
             [self setStatus:[NSString stringWithFormat:@"Failed to respring: %@", error]];
+        }
+        else {
+            [self _updateSelectedDeviceUI];
         }
     }];
 }
@@ -474,6 +475,7 @@
     [self setStatus:[NSString stringWithFormat:@"Installing %@...", debURL.lastPathComponent]];
     [self.packageService installDebFileAtPath:debURL.path toDevice:bootedSim completion:^(NSError * _Nullable error) {
         if (error) {
+            NSLog(@"Failed to install deb file: %@", error);
             [self setStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
         } else {
             [self setStatus:@"Installed"];

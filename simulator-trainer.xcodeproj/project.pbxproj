@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */; };
 		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 5FA72A522DE9E11C00B510F9 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +72,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				"Supporting Files/bootstrap/cycript_server.dylib",
 				"Supporting Files/bootstrap/CydiaSubstrate",
 				"Supporting Files/bootstrap/FLEX.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
@@ -85,6 +87,7 @@
 			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
 			buildPhase = 5FC346D32DC0A55100572D7F /* Resources */;
 			membershipExceptions = (
+				"Supporting Files/bootstrap/cycript_server.dylib",
 				"Supporting Files/bootstrap/CydiaSubstrate",
 				"Supporting Files/bootstrap/FLEX.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
@@ -126,6 +129,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */,
 				5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -204,6 +208,7 @@
 			);
 			name = "simulator-trainer";
 			packageProductDependencies = (
+				5FA72A522DE9E11C00B510F9 /* SwiftTerm */,
 			);
 			productName = "simulator-trainer";
 			productReference = 5FC346D52DC0A55100572D7F /* simulator-trainer.app */;
@@ -235,6 +240,9 @@
 			);
 			mainGroup = 5FC346CC2DC0A55100572D7F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5FA72A512DE9E11C00B510F9 /* XCLocalSwiftPackageReference "../../../Downloads/SwiftTerm" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5FC346D62DC0A55100572D7F /* Products */;
 			projectDirPath = "";
@@ -456,6 +464,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "simulator-trainer/Supporting Files/simulator_trainer.entitlements";
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
@@ -508,6 +518,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = "simulator-trainer/Supporting Files/simulator_trainer.entitlements";
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
@@ -586,6 +598,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		5FA72A512DE9E11C00B510F9 /* XCLocalSwiftPackageReference "../../../Downloads/SwiftTerm" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../Downloads/SwiftTerm;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5FA72A522DE9E11C00B510F9 /* SwiftTerm */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SwiftTerm;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5FC346CD2DC0A55100572D7F /* Project object */;
 }
