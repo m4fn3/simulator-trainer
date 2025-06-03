@@ -333,14 +333,16 @@
 - (void)handleDoJailbreakSelected:(NSButton *)sender {
     [self setStatus:@"Applying jb..."];
     self.jailbreakButton.enabled = NO;
-    [self->orchestrator applyJailbreakToDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(BOOL success, NSError * _Nullable error) {
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
+    [self->orchestrator applyJailbreakToDevice:bootedSim completion:^(BOOL success, NSError * _Nullable error) {
         [self device:self->selectedDevice jailbreakFinished:success error:error];
     }];
 }
 
 - (void)handleRemoveJailbreakSelected:(NSButton *)sender {
     [self setStatus:@"Removing jb..."];
-    [self->orchestrator removeJailbreakFromDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(BOOL success, NSError * _Nullable error) {
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
+    [self->orchestrator removeJailbreakFromDevice:bootedSim completion:^(BOOL success, NSError * _Nullable error) {
         ON_MAIN_THREAD((^{
             if (error) {
                 [self setStatus:[NSString stringWithFormat:@"Failed to remove jailbreak: %@", error]];
@@ -360,7 +362,8 @@
 
 - (void)handleRespringSelected:(NSButton *)sender {
     [self setStatus:@"Respringing device"];
-    [self->orchestrator respringDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError * _Nullable error) {
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
+    [self->orchestrator respringDevice:bootedSim completion:^(NSError * _Nullable error) {
         if (error) {
             [self setStatus:[NSString stringWithFormat:@"Failed to respring: %@", error]];
         }

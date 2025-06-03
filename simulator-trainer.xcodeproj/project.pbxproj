@@ -75,6 +75,7 @@
 				"Supporting Files/bootstrap/cycript_server.dylib",
 				"Supporting Files/bootstrap/CydiaSubstrate",
 				"Supporting Files/bootstrap/FLEX.dylib",
+				"Supporting Files/bootstrap/libcycript.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
 				"Supporting Files/bootstrap/loader.dylib",
 			);
@@ -90,6 +91,7 @@
 				"Supporting Files/bootstrap/cycript_server.dylib",
 				"Supporting Files/bootstrap/CydiaSubstrate",
 				"Supporting Files/bootstrap/FLEX.dylib",
+				"Supporting Files/bootstrap/libcycript.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
 				"Supporting Files/bootstrap/loader.dylib",
 			);
@@ -476,6 +478,7 @@
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				GCC_OPTIMIZATION_LEVEL = 1;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "simulator-trainer/Info.plist";

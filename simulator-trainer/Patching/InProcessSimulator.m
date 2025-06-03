@@ -9,6 +9,7 @@
 #import <objc/message.h>
 #import <Cocoa/Cocoa.h>
 #import <dlfcn.h>
+#import "TerminalWindowController.h"
 #import "InProcessSimulator.h"
 #import "AppBinaryPatcher.h"
 #import "dylib_conversion.h"
@@ -232,6 +233,31 @@
     NSBundle *simBundle = [NSBundle bundleWithPath:[self _simulatorBundlePath]];
     NSArray *topObjects = nil;
     [simBundle loadNibNamed:@"MainMenu" owner:NSApp topLevelObjects:&topObjects];
+    
+    NSMenu *mainMenu = [NSApp mainMenu];
+    
+    NSMenu *simHacksMenu = [[NSMenu alloc] initWithTitle:@"Sim Hacks"];
+    NSMenuItem *placeholder1 = [[NSMenuItem alloc] initWithTitle:@"Open GUI" action:@selector(handleOpenSimForgeGui:) keyEquivalent:@""];
+    [placeholder1 setTarget:self];
+
+    NSMenuItem *placeholder2 = [[NSMenuItem alloc] initWithTitle:@"Cycript Terminal" action:@selector(handleOpenCycript:) keyEquivalent:@""];
+    [placeholder2 setTarget:self];
+    
+    [simHacksMenu addItem:placeholder1];
+    [simHacksMenu addItem:placeholder2];
+
+    NSMenuItem *simHacksMenuItem = [[NSMenuItem alloc] initWithTitle:@"Sim Hacks" action:nil keyEquivalent:@""];
+    [simHacksMenuItem setSubmenu:simHacksMenu];
+    [mainMenu addItem:simHacksMenuItem];
+}
+
+- (void)handleOpenSimForgeGui:(id)sender {
+    NSLog(@"Open simforge GUI clicked");
+}
+
+- (void)handleOpenCycript:(id)sender {
+    NSLog(@"Cycript menu clicked");
+    [TerminalWindowController presentTerminalWithExecutable:@"/Users/ethanarbuckle/Desktop/cycript_mac" args:@[]];
 }
 
 - (id)forwardingTargetForSelector:(SEL)aSelector {
