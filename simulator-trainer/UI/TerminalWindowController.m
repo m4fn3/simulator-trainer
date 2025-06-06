@@ -15,21 +15,21 @@
 @implementation TerminalWindowController
 
 + (id)presentTerminal {
-    return [self presentTerminalWithExecutable:@"/bin/bash" args:@[]];
+    return [self presentTerminalWithExecutable:@"/bin/bash" args:@[] title:nil];
 }
 
-+ (id)presentTerminalWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args {
-    TerminalWindowController *controller = [[self alloc] initWithExecutable:exe args:args];
++ (id)presentTerminalWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args title:(NSString *)title {
+    TerminalWindowController *controller = [[self alloc] initWithExecutable:exe args:args title:title];
     [controller showWindow:nil];
     return controller;
 }
 
-- (instancetype)initWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args {
+- (instancetype)initWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args title:(NSString *)title {
     NSRect initialFrame = NSMakeRect(0, 0, 800, 500);
     NSWindow *termWindow = [[NSWindow alloc] initWithContentRect:initialFrame styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable) backing:NSBackingStoreBuffered defer:NO];
     
     if ((self = [super initWithWindow:termWindow])) {
-        termWindow.title = @"Terminal";
+        termWindow.title = title ?: @"Terminal";
         termWindow.delegate = self;
         termWindow.releasedWhenClosed = NO;
         termWindow.minSize = NSMakeSize(480, 240);

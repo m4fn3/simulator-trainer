@@ -19,3 +19,10 @@ Drop an iOS tweak .deb file onto a Simulator to install it
   *(one simruntime per iOS version, shared by every device model)*.  
 * Injects a loader into `libobjc.A.dylib` to start tweaks.  
 *  Installs tweaks inside the overlay; non-sim binaries are auto-converted during install.
+
+
+---
+
+#### Cycript
+
+![cycript](./img/cycript.gif)

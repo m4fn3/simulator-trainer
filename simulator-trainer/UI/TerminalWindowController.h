@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface TerminalWindowController : NSWindowController <NSWindowDelegate, LocalProcessTerminalViewDelegate>
 
 + (id)presentTerminal;
-+ (id)presentTerminalWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args;
++ (id)presentTerminalWithExecutable:(NSString * _Nonnull)exe args:(NSArray<NSString *> * _Nullable)args title:(NSString * _Nullable)title;
 
 @end
 

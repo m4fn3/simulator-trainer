@@ -6,10 +6,10 @@
 //
 
 #import "SimulatorOrchestrationService.h"
-#import "SimDeviceManager.h"
+#import "InProcessSimulator.h"
 #import "HelperConnection.h"
+#import "SimDeviceManager.h"
 #import "ViewController.h"
-#import "SimLogging.h"
 
 #define ON_MAIN_THREAD(block) \
     if ([[NSThread currentThread] isMainThread]) { \
@@ -27,6 +27,9 @@
     SimulatorOrchestrationService *orchestrator;
 }
 
+@property (nonatomic, strong) InProcessSimulator *simInterposer;
+@property (nonatomic, strong) id simDeviceObserver;
+
 @end
 
 @implementation ViewController
@@ -40,8 +43,6 @@
         orchestrator = [[SimulatorOrchestrationService alloc] initWithHelperConnection:helperConnection];
         
         self.packageService = [[PackageInstallationService alloc] init];
-        
-        [SimLogging observeSimulatorLogs];
     }
 
     return self;
@@ -91,8 +92,20 @@
         [self processDebFileAtURL:[NSURL fileURLWithPath:debPath]];
     }];
     
-    [self _populateDevicePopup];
-    [self refreshDeviceList];
+    void (^deviceListFullRefreshBlock)(void) = ^(void) {
+        [self _populateDevicePopup];
+        [self refreshDeviceList];
+    };
+    
+    _simDeviceObserver = [NSNotificationCenter.defaultCenter addObserverForName:@"SimDeviceStateChanged" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSLog(@"Device list changed, refreshing...");
+        deviceListFullRefreshBlock();
+        [self _autoselectDevice];
+    }];
+    
+    deviceListFullRefreshBlock();
+    
+    self.simInterposer = [InProcessSimulator setup];
 }
 
 - (void)refreshDeviceList {
@@ -115,46 +128,49 @@
     });
 }
 
-- (void)_populateDevicePopup {    
-    // Purge the device selection list, then rebuild it using the devices currently in allSimDevices
-    [self.devicePopup removeAllItems];
-    NSArray *deviceList = self->allSimDevices;
-    
-    // If no devices were found
-    if (deviceList.count == 0) {
-        [self.devicePopup addItemWithTitle:@"-- None --"];
-        [self.devicePopup selectItemAtIndex:0];
-        [self.devicePopup setEnabled:NO];
-        return;
-    }
-    
-    // Otherwise, add each discovered device to the popup list
-    for (int i = 0; i < deviceList.count; i++) {
-        SimulatorWrapper *device = deviceList[i];
-        // displayString: "(Booted) iPhone 14 Pro (iOS 17.0) [A1B2C3D4-5678-90AB-CDEF-1234567890AB]"
-        [self.devicePopup addItemWithTitle:[device displayString]];
-    }
-    
-    // If a device has already been selected from the popup list, and
-    // that device is still available in the popup list after rebuilding it, then
-    // reselect that device
-    if (self->selectedDevice && (self->selectedDeviceIndex >= 0 && self->selectedDeviceIndex < self.devicePopup.numberOfItems)) {
-        NSMenuItem *selectedItem = [self.devicePopup itemAtIndex:self->selectedDeviceIndex];
+- (void)_populateDevicePopup {
+    __weak typeof(self) weakSelf = self;
+    ON_MAIN_THREAD(^{
+        // Purge the device selection list, then rebuild it using the devices currently in allSimDevices
+        [weakSelf.devicePopup removeAllItems];
+        NSArray *deviceList = self->allSimDevices;
         
-        // Sanity check its the right device
-        if ([selectedItem.title isEqualToString:[self->selectedDevice displayString]]) {
-            [self.devicePopup selectItem:selectedItem];
+        // If no devices were found
+        if (deviceList.count == 0) {
+            [weakSelf.devicePopup addItemWithTitle:@"-- None --"];
+            [weakSelf.devicePopup selectItemAtIndex:0];
+            [weakSelf.devicePopup setEnabled:NO];
+            return;
+        }
+        
+        // Otherwise, add each discovered device to the popup list
+        for (int i = 0; i < deviceList.count; i++) {
+            SimulatorWrapper *device = deviceList[i];
+            // displayString: "(Booted) iPhone 14 Pro (iOS 17.0) [A1B2C3D4-5678-90AB-CDEF-1234567890AB]"
+            [weakSelf.devicePopup addItemWithTitle:[device displayString]];
+        }
+        
+        // If a device has already been selected from the popup list, and
+        // that device is still available in the popup list after rebuilding it, then
+        // reselect that device
+        if (self->selectedDevice && (self->selectedDeviceIndex >= 0 && self->selectedDeviceIndex < weakSelf.devicePopup.numberOfItems)) {
+            NSMenuItem *selectedItem = [weakSelf.devicePopup itemAtIndex:self->selectedDeviceIndex];
+            
+            // Sanity check its the right device
+            if ([selectedItem.title isEqualToString:[self->selectedDevice displayString]]) {
+                [weakSelf.devicePopup selectItem:selectedItem];
+            }
+            else {
+                NSLog(@"Selected device not found in list!");
+                [weakSelf.devicePopup selectItemAtIndex:0];
+            }
         }
         else {
-            NSLog(@"Selected device not found in list!");
-            [self.devicePopup selectItemAtIndex:0];
+            [weakSelf.devicePopup selectItemAtIndex:0];
         }
-    }
-    else {
-        [self.devicePopup selectItemAtIndex:0];
-    }
-
-    [self.devicePopup setEnabled:YES];
+        
+        [weakSelf.devicePopup setEnabled:YES];
+    });
 }
 
 - (void)_updateDeviceMenuItemLabels {
@@ -323,7 +339,8 @@
 
 - (void)handleShutdownSelected:(NSButton *)sender {
     [self setStatus:@"Shutting down"];
-    [self->orchestrator shutdownDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError *error) {
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:self->selectedDevice];
+    [self->orchestrator shutdownDevice:bootedSim completion:^(NSError *error) {
         if (error) {
             [self setStatus:[NSString stringWithFormat:@"Failed to shutdown: %@", error]];
         }

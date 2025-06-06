@@ -13,7 +13,9 @@
 #import "InProcessSimulator.h"
 #import "AppBinaryPatcher.h"
 #import "dylib_conversion.h"
+#import "CycriptLauncher.h"
 #import "CommandRunner.h"
+#import "SimLogging.h"
 
 
 @implementation InProcessSimulator
@@ -23,22 +25,30 @@
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         
+        // Find Simulator.app, make a dylib version that can be loaded in-process
         simulatorInterposer = [[InProcessSimulator alloc] init];
-        
-        [simulatorInterposer _patchCriticalSimulatorConflicts];
         [simulatorInterposer convertSimulatorToDylibWithCompletion:^(NSString *dylibPath) {
             if (!dylibPath) {
                 NSLog(@"Failed to convert Simulator.app to dylib");
                 return;
             }
             
+            // Handle conflicts before loading the dylib (doesn't involve sim-exclusive classes)
+            [simulatorInterposer _patchCriticalSimulatorConflicts];
+
+            [SimLogging observeSimulatorLogs];
+
+            // Load simulator
             if (dlopen([dylibPath UTF8String], 0) == NULL) {
                 NSLog(@"Failed to load Simulator dylib: %s", dlerror());
                 return;
             }
             
+            // With sim loaded in-process, its classes (AppDelegate, view controllers) can be directly modified.
+            // Setup drag-and-drop tweak installation
             [simulatorInterposer _setupDragAndDropTweakInstallation];
-            
+                        
+            // Open the simulator ui
             [simulatorInterposer launchSimulatorFromDylib:dylibPath];
         }];
     });
@@ -186,7 +196,7 @@
         return ((NSString * (*)(id, SEL, NSString *))origObjectForInfoDictionaryKeyImp)(_self, objectForInfoDictionaryKeySel, key);
     };
     origObjectForInfoDictionaryKeyImp = [self _swizzleSelector:objectForInfoDictionaryKeySel ofClass:NSBundleClass withBlock:newObjForInfoDict];
-    
+
     return YES;
 }
 
@@ -252,12 +262,11 @@
 }
 
 - (void)handleOpenSimForgeGui:(id)sender {
-    NSLog(@"Open simforge GUI clicked");
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"SimForgeShowMainWindow" object:nil];
 }
-
+    
 - (void)handleOpenCycript:(id)sender {
-    NSLog(@"Cycript menu clicked");
-    [TerminalWindowController presentTerminalWithExecutable:@"/Users/ethanarbuckle/Desktop/cycript_mac" args:@[]];
+    [CycriptLauncher beginSessionForProcessNamed:@"SpringBoard"];
 }
 
 - (id)forwardingTargetForSelector:(SEL)aSelector {

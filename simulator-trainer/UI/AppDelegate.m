@@ -6,17 +6,15 @@
 //
 
 #import "AppDelegate.h"
-#import "InProcessSimulator.h"
-
 
 @interface AppDelegate ()
-@property (nonatomic, strong) InProcessSimulator *simInterposer;
+@property (nonatomic, strong) NSWindowController *mainWindowController;
 @end
 
 @implementation AppDelegate
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    self.simInterposer = [InProcessSimulator setup];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(makeWindowVisible) name:@"SimForgeShowMainWindow" object:nil];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
@@ -27,12 +25,16 @@
     return YES;
 }
 
-- (id)forwardingTargetForSelector:(SEL)aSelector {
-    if ([self.simInterposer.simulatorDelegate respondsToSelector:aSelector]) {
-        return self.simInterposer.simulatorDelegate;
+- (void)makeWindowVisible {
+    if (self.mainWindowController == nil || self.mainWindowController.window == nil) {
+        NSStoryboard *storyboard = [NSStoryboard storyboardWithName:@"Main" bundle:nil];
+        self.mainWindowController = [storyboard instantiateControllerWithIdentifier:@"MainWindowController"];
     }
 
-    return [super forwardingTargetForSelector:aSelector];
+    [self.mainWindowController showWindow:self];
+
+    [self.mainWindowController.window makeKeyAndOrderFront:self];
+    [NSApp activateIgnoringOtherApps:YES];
 }
 
 @end

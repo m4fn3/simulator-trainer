@@ -7,12 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5F19A80C2DEF018600D52D33 /* hooks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F19A8062DEF018500D52D33 /* hooks.framework */; };
+		5F19A80D2DEF018600D52D33 /* hooks.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5F19A8062DEF018500D52D33 /* hooks.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */; };
 		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 5FA72A522DE9E11C00B510F9 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		5F19A80A2DEF018600D52D33 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5FC346CD2DC0A55100572D7F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5F19A8052DEF018500D52D33;
+			remoteInfo = hooks;
+		};
 		5F7514142DD973FE005BAFA7 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5FC346CD2DC0A55100572D7F /* Project object */;
@@ -32,6 +41,17 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		5F19A8122DEF018600D52D33 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				5F19A80D2DEF018600D52D33 /* hooks.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5F7514162DD9789F005BAFA7 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -46,11 +66,19 @@
 
 /* Begin PBXFileReference section */
 		5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.objc.simulator-trainer.SimRuntimeHelper"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F19A8062DEF018500D52D33 /* hooks.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = hooks.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		5FC346D52DC0A55100572D7F /* simulator-trainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "simulator-trainer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5F19A8112DEF018600D52D33 /* Exceptions for "hooks" folder in "hooks" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			publicHeaders = (
+				hooks.h,
+			);
+			target = 5F19A8052DEF018500D52D33 /* hooks */;
+		};
 		5F75140D2DD95F8C005BAFA7 /* Exceptions for "simulator-trainer" folder in "SimRuntimeHelper" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -107,6 +135,14 @@
 			path = SimRuntimeHelper;
 			sourceTree = "<group>";
 		};
+		5F19A8072DEF018600D52D33 /* hooks */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5F19A8112DEF018600D52D33 /* Exceptions for "hooks" folder in "hooks" target */,
+			);
+			path = hooks;
+			sourceTree = "<group>";
+		};
 		5FC346D72DC0A55100572D7F /* simulator-trainer */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -127,10 +163,18 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5F19A8032DEF018500D52D33 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D22DC0A55100572D7F /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5F19A80C2DEF018600D52D33 /* hooks.framework in Frameworks */,
 				5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */,
 				5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */,
 			);
@@ -152,6 +196,7 @@
 			children = (
 				5FC346D72DC0A55100572D7F /* simulator-trainer */,
 				5F0DDBC82DD9468700F6A709 /* SimRuntimeHelper */,
+				5F19A8072DEF018600D52D33 /* hooks */,
 				5F7514112DD970F9005BAFA7 /* Frameworks */,
 				5FC346D62DC0A55100572D7F /* Products */,
 			);
@@ -162,11 +207,22 @@
 			children = (
 				5FC346D52DC0A55100572D7F /* simulator-trainer.app */,
 				5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */,
+				5F19A8062DEF018500D52D33 /* hooks.framework */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		5F19A8012DEF018500D52D33 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */ = {
@@ -191,6 +247,29 @@
 			productReference = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */;
 			productType = "com.apple.product-type.tool";
 		};
+		5F19A8052DEF018500D52D33 /* hooks */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5F19A80E2DEF018600D52D33 /* Build configuration list for PBXNativeTarget "hooks" */;
+			buildPhases = (
+				5F19A8012DEF018500D52D33 /* Headers */,
+				5F19A8022DEF018500D52D33 /* Sources */,
+				5F19A8032DEF018500D52D33 /* Frameworks */,
+				5F19A8042DEF018500D52D33 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5F19A8072DEF018600D52D33 /* hooks */,
+			);
+			name = hooks;
+			packageProductDependencies = (
+			);
+			productName = hooks;
+			productReference = 5F19A8062DEF018500D52D33 /* hooks.framework */;
+			productType = "com.apple.product-type.framework";
+		};
 		5FC346D42DC0A55100572D7F /* simulator-trainer */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5FC346E82DC0A55400572D7F /* Build configuration list for PBXNativeTarget "simulator-trainer" */;
@@ -199,11 +278,13 @@
 				5FC346D22DC0A55100572D7F /* Frameworks */,
 				5FC346D32DC0A55100572D7F /* Resources */,
 				5F7514162DD9789F005BAFA7 /* CopyFiles */,
+				5F19A8122DEF018600D52D33 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				5F7514152DD973FE005BAFA7 /* PBXTargetDependency */,
+				5F19A80B2DEF018600D52D33 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5FC346D72DC0A55100572D7F /* simulator-trainer */,
@@ -226,6 +307,9 @@
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
 					5F0DDBC62DD9468700F6A709 = {
+						CreatedOnToolsVersion = 16.2;
+					};
+					5F19A8052DEF018500D52D33 = {
 						CreatedOnToolsVersion = 16.2;
 					};
 					5FC346D42DC0A55100572D7F = {
@@ -252,11 +336,19 @@
 			targets = (
 				5FC346D42DC0A55100572D7F /* simulator-trainer */,
 				5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */,
+				5F19A8052DEF018500D52D33 /* hooks */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		5F19A8042DEF018500D52D33 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D32DC0A55100572D7F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -274,6 +366,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5F19A8022DEF018500D52D33 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5FC346D12DC0A55100572D7F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -284,6 +383,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5F19A80B2DEF018600D52D33 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5F19A8052DEF018500D52D33 /* hooks */;
+			targetProxy = 5F19A80A2DEF018600D52D33 /* PBXContainerItemProxy */;
+		};
 		5F7514152DD973FE005BAFA7 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 5F0DDBC62DD9468700F6A709 /* SimRuntimeHelper */;
@@ -341,6 +445,76 @@
 				PRODUCT_NAME = "com.objc.simulator-trainer.SimRuntimeHelper";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+		5F19A80F2DEF018600D52D33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.objc.hooks;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
+			};
+			name = Debug;
+		};
+		5F19A8102DEF018600D52D33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DEVELOPMENT_TEAM = "";
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				ENABLE_MODULE_VERIFIER = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
+				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu17 gnu++20";
+				PRODUCT_BUNDLE_IDENTIFIER = com.objc.hooks;
+				PRODUCT_NAME = "$(TARGET_NAME:c99extidentifier)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				VERSIONING_SYSTEM = "apple-generic";
+				VERSION_INFO_PREFIX = "";
 			};
 			name = Release;
 		};
@@ -578,6 +752,15 @@
 			buildConfigurations = (
 				5F0DDBCB2DD9468700F6A709 /* Debug */,
 				5F0DDBCC2DD9468700F6A709 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5F19A80E2DEF018600D52D33 /* Build configuration list for PBXNativeTarget "hooks" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5F19A80F2DEF018600D52D33 /* Debug */,
+				5F19A8102DEF018600D52D33 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
