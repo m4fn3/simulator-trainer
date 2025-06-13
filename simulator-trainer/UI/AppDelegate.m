@@ -6,6 +6,7 @@
 //
 
 #import "AppDelegate.h"
+#import "InProcessSimulator.h"
 
 @interface AppDelegate ()
 @property (nonatomic, strong) NSWindowController *mainWindowController;
@@ -35,6 +36,15 @@
 
     [self.mainWindowController.window makeKeyAndOrderFront:self];
     [NSApp activateIgnoringOtherApps:YES];
+}
+
+- (id)forwardingTargetForSelector:(SEL)aSelector {
+    id receiver = [InProcessSimulator sharedSetupIfNeeded].simulatorDelegate;
+    if ([receiver respondsToSelector:aSelector]) {
+        return receiver;
+    }
+    
+    return [super forwardingTargetForSelector:aSelector];
 }
 
 @end

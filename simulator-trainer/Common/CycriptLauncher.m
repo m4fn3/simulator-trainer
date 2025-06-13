@@ -17,12 +17,14 @@
 @implementation CycriptLauncher
 
 + (NSString *)_cycriptExecutablePath {
-    NSString *path = @"/Users/ethanarbuckle/Desktop/cycript_mac";
-    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-        NSLog(@"Cycript executable not found at path: %@", path);
-        return nil;
+    NSString *cycriptAssetPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"cycript_mac" ofType:nil];
+    NSString *cycriptCliPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"cycript"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:cycriptCliPath]) {
+        [[NSFileManager defaultManager] removeItemAtPath:cycriptCliPath error:nil];
     }
-    return path;
+
+    [[NSFileManager defaultManager] copyItemAtPath:cycriptAssetPath toPath:cycriptCliPath error:nil];
+    return  cycriptCliPath;
 }
 
 + (pid_t)_getProcessIDForTarget:(NSString *)target {
@@ -92,8 +94,9 @@
         return NO;
     }
 
-    NSString *termTitle = @"cycript -- SpringBoard";
-    [TerminalWindowController presentTerminalWithExecutable:cycriptPath args:@[@"-r", [NSString stringWithFormat:@"127.0.0.1:%d", cycript_server_port]] title:termTitle];
+    NSString *termTitle = [NSString stringWithFormat:@"cycript -- SpringBoard (127.0.0.1:%d)", cycript_server_port];;
+    [TerminalWindowController presentTerminalWithExecutable:cycriptPath args:@[@"-r", [NSString stringWithFormat:@"127.0.0.1:%d", cycript_server_port]] env:nil title:termTitle];
+
     return YES;
 }
 
