@@ -20,7 +20,7 @@
 
 @implementation InProcessSimulator
 
-+ (instancetype)setup {
++ (instancetype)sharedSetupIfNeeded {
     static InProcessSimulator *simulatorInterposer = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
@@ -197,6 +197,19 @@
     };
     origObjectForInfoDictionaryKeyImp = [self _swizzleSelector:objectForInfoDictionaryKeySel ofClass:NSBundleClass withBlock:newObjForInfoDict];
 
+    // [NSUserDefaults boolForKey:]
+    SEL boolForKeySel = sel_registerName("boolForKey:");
+    static IMP origBoolForKeyImp = nil;
+    BOOL (^newBoolForKey)(id, NSString *) = ^BOOL(id _self, NSString *key) {
+        NSArray *alwaysTrueKeys = @[@"CarPlayExtraOptions"];
+        if ([alwaysTrueKeys containsObject:key]) {
+            return YES;
+        }
+        
+        return ((BOOL (*)(id, SEL, NSString *))origBoolForKeyImp)(_self, boolForKeySel, key);
+    };
+    origBoolForKeyImp = [self _swizzleSelector:boolForKeySel ofClass:NSUserDefaults.class withBlock:newBoolForKey];
+    
     return YES;
 }
 
