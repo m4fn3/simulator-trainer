@@ -243,9 +243,17 @@
     NSBundle *simBundle = [NSBundle bundleWithPath:[self _simulatorBundlePath]];
     NSArray *topObjects = nil;
     [simBundle loadNibNamed:@"MainMenu" owner:NSApp topLevelObjects:&topObjects];
-    
+    for (NSObject *object in topObjects) {
+        if (![object isKindOfClass:[NSMenu class]]) {
+            continue;
+        }
+        
+        for (NSMenuItem *item in [(NSMenu *)object itemArray]) {
+            item.hidden = NO;
+        }
+    }
+            
     NSMenu *mainMenu = [NSApp mainMenu];
-    
     NSMenu *simHacksMenu = [[NSMenu alloc] initWithTitle:@"Sim Hacks"];
     NSMenuItem *placeholder1 = [[NSMenuItem alloc] initWithTitle:@"Open GUI" action:@selector(handleOpenSimForgeGui:) keyEquivalent:@""];
     [placeholder1 setTarget:self];
