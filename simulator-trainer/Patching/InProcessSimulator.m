@@ -10,6 +10,7 @@
 #import <Cocoa/Cocoa.h>
 #import <dlfcn.h>
 #import "TerminalWindowController.h"
+#import "BootedSimulatorWrapper.h"
 #import "InProcessSimulator.h"
 #import "AppBinaryPatcher.h"
 #import "dylib_conversion.h"
@@ -17,6 +18,9 @@
 #import "CommandRunner.h"
 #import "SimLogging.h"
 
+@interface InProcessSimulator ()
+@property (nonatomic, strong) BootedSimulatorWrapper *focusedSimulatorDevice;
+@end
 
 @implementation InProcessSimulator
 
@@ -249,7 +253,7 @@
 - (void)launchSimulatorFromDylib:(NSString *)simulatorDylibPath {
     // Create Simulator's AppDelegate, trigger applicationDidFinishLaunching flow (does a bunch of setup)
     Class _SimulatorAppDelegate = objc_getClass("SimulatorAppDelegate");
-    self.simulatorDelegate = [[_SimulatorAppDelegate alloc] init];
+    self->_simulatorDelegate = [[_SimulatorAppDelegate alloc] init];
     ((void (*)(id, SEL, id))objc_msgSend)(self.simulatorDelegate, sel_registerName("applicationDidFinishLaunching:"), nil);
     
     // Load the MainMenu.xib from Simulator.app bundle. This populates the menu bar with the Simulator's menu items
@@ -274,8 +278,16 @@
     NSMenuItem *placeholder2 = [[NSMenuItem alloc] initWithTitle:@"Cycript Terminal" action:@selector(handleOpenCycript:) keyEquivalent:@""];
     [placeholder2 setTarget:self];
     
+    NSMenuItem *traceItem = [[NSMenuItem alloc] initWithTitle:@"objc_msgSend trace" action:@selector(handleObjcMsgSendTrace:) keyEquivalent:@""];
+    [traceItem setTarget:self];
+    
+    NSMenuItem *flexItem = [[NSMenuItem alloc] initWithTitle:@"FLEX" action:@selector(handleObjcMsgSendTrace:) keyEquivalent:@""];
+    [flexItem setTarget:self];
+    
     [simHacksMenu addItem:placeholder1];
     [simHacksMenu addItem:placeholder2];
+    [simHacksMenu addItem:traceItem];
+    [simHacksMenu addItem:flexItem];
 
     NSMenuItem *simHacksMenuItem = [[NSMenuItem alloc] initWithTitle:@"Sim Hacks" action:nil keyEquivalent:@""];
     [simHacksMenuItem setSubmenu:simHacksMenu];
@@ -290,12 +302,69 @@
     [CycriptLauncher beginSessionForProcessNamed:@"SpringBoard"];
 }
 
-- (id)forwardingTargetForSelector:(SEL)aSelector {
-    if ([self.simulatorDelegate respondsToSelector:aSelector]) {
-        return self.simulatorDelegate;
+- (void)handleObjcMsgSendTrace:(id)sender {
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"objc_msgSend Trace"];
+    [alert setInformativeText:@"Enter pattern and process name to trace"];
+    [alert addButtonWithTitle:@"Start Trace"];
+    [alert addButtonWithTitle:@"Cancel"];
+
+    NSTextField *patternField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [patternField setPlaceholderString:@"trace pattern"];
+
+    NSTextField *processField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [processField setPlaceholderString:@"process to trace"];
+
+    NSStackView *inputStack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 250, 60)];
+    [inputStack setOrientation:NSUserInterfaceLayoutOrientationVertical];
+    [inputStack setSpacing:8];
+    [inputStack addView:patternField inGravity:NSStackViewGravityTop];
+    [inputStack addView:processField inGravity:NSStackViewGravityTop];
+
+    [alert setAccessoryView:inputStack];
+
+    NSWindow *mainWindow = [NSApp mainWindow];
+    [alert beginSheetModalForWindow:mainWindow completionHandler:^(NSModalResponse returnCode) {
+        if (returnCode == NSAlertFirstButtonReturn) {
+            NSString *pattern = [patternField stringValue];
+            NSString *process = [processField stringValue];
+            
+            NSLog(@"Starting trace with pattern: %@ in process: %@", pattern, process);
+            [self traceLaunchBundleId:process withTracePattern:pattern];
+        }
+    }];
+}
+
+- (void)focusSimulatorDevice:(BootedSimulatorWrapper *)device {
+    NSLog(@"InProcessSimulator: focusing on device %@", device);
+    self.focusedSimulatorDevice = device;
+}
+
+- (void)traceLaunchBundleId:(NSString *)bundleId withTracePattern:(NSString *)pattern {
+    if (!self.focusedSimulatorDevice) {
+        NSLog(@"No focused simulator to launch trace on");
+        return;
     }
     
-    return [super forwardingTargetForSelector:aSelector];
+    NSString *libobjseeAssetPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"libobjsee" ofType:@"dylib"];
+    NSString *libObjseePath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"libobjsee.dylib"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:libObjseePath]) {
+        [[NSFileManager defaultManager] removeItemAtPath:libObjseePath error:nil];
+    }
+    [[NSFileManager defaultManager] copyItemAtPath:libobjseeAssetPath toPath:libObjseePath error:nil];
+    
+    [AppBinaryPatcher codesignItemAtPath:libObjseePath completion:^(BOOL success, NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"Failed to codesign libobjsee: %@", error);
+            return;
+        }
+
+        NSArray *xcrunArgs = @[@"simctl", @"launch", @"--console", @"--terminate-running-process", self.focusedSimulatorDevice.udidString, bundleId];
+        NSArray *envs = @[
+            [NSString stringWithFormat:@"SIMCTL_CHILD_DYLD_INSERT_LIBRARIES=%@", libObjseePath],
+        ];
+        [TerminalWindowController presentTerminalWithExecutable:@"/usr/bin/xcrun" args:xcrunArgs env:envs title:[NSString stringWithFormat:@"Tracing %@", bundleId]];
+    }];
 }
 
 @end

@@ -105,6 +105,7 @@
 				"Supporting Files/bootstrap/FLEX.dylib",
 				"Supporting Files/bootstrap/libcycript.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
+				"Supporting Files/bootstrap/libobjsee.dylib",
 				"Supporting Files/bootstrap/loader.dylib",
 			);
 			target = 5FC346D42DC0A55100572D7F /* simulator-trainer */;
@@ -121,6 +122,7 @@
 				"Supporting Files/bootstrap/FLEX.dylib",
 				"Supporting Files/bootstrap/libcycript.dylib",
 				"Supporting Files/bootstrap/libhooker.dylib",
+				"Supporting Files/bootstrap/libobjsee.dylib",
 				"Supporting Files/bootstrap/loader.dylib",
 			);
 		};

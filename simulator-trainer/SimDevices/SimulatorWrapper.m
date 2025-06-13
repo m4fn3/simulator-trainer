@@ -9,7 +9,6 @@
 #import <objc/message.h>
 #import "SimulatorWrapper.h"
 #import "SimDeviceManager.h"
-#import "XCRunInterface.h"
 
 @interface SimulatorWrapper ()
 @end
@@ -163,11 +162,6 @@
             }
         }
         else {
-            // Boot completed
-
-            // Open the simulator GUI app so the simruntime can't sneak-run in the bg
-//            [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"/usr/bin/open", @"-a", @"Simulator"]];
-            
             // Done booting (or failed to boot), notify the delegate if needed.
             if (bootingForReboot && [self.delegate respondsToSelector:@selector(deviceDidReboot:)]) {
                 // Reboot-boots fire a different delegate method

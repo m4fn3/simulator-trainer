@@ -39,39 +39,6 @@
     return self;
 }
 
-- (NSString *)invokeAndWait:(NSArray<NSString *> *)simCmdArgs {
-    NSPipe *outputPipe = [NSPipe pipe];
-    NSFileHandle *outputHandle = outputPipe.fileHandleForReading;
-
-    NSDictionary *environDict = [[NSProcessInfo processInfo] environment];
-
-    NSMutableArray *simctlSpawnArgCmd = [[NSMutableArray alloc] init];
-    [simctlSpawnArgCmd addObject:[self.runtimeRoot stringByAppendingPathComponent:[simCmdArgs firstObject]]];
-    if (simCmdArgs.count > 1) {
-        [simctlSpawnArgCmd addObject:[[simCmdArgs subarrayWithRange:NSMakeRange(1, simCmdArgs.count - 1)] componentsJoinedByString:@" "]];
-    }
-
-    NSMutableArray *wrappedArguments = [NSMutableArray array];
-    [wrappedArguments addObject:@"-m"];
-    [wrappedArguments addObject:environDict[@"USER"]];
-    [wrappedArguments addObject:@"-c"];
-    [wrappedArguments addObject:[@"/usr/bin/xcrun simctl spawn " stringByAppendingString:[@[self.udidString, [simctlSpawnArgCmd componentsJoinedByString:@" "]] componentsJoinedByString:@" "]]];
-
-    id task = [[objc_getClass("NSTask") alloc] init];
-    ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setLaunchPath:"), @"/usr/bin/su");
-    ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setArguments:"), wrappedArguments);
-    ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setStandardOutput:"), outputPipe);
-    ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setStandardError:"), outputPipe);
-
-    ((void (*)(id, SEL, id))objc_msgSend)(task, NSSelectorFromString(@"setEnvironment:"), environDict);
-
-    ((void (*)(id, SEL))objc_msgSend)(task, NSSelectorFromString(@"launch"));
-
-    ((void (*)(id, SEL))objc_msgSend)(task, NSSelectorFromString(@"waitUntilExit"));
-    NSData *outputData = [outputHandle readDataToEndOfFile];
-    return [[NSString alloc] initWithData:outputData encoding:NSUTF8StringEncoding];
-}
-
 - (NSArray <NSString *> *)directoriesToOverlay {
     return @[
         [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib"],

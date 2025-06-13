@@ -7,10 +7,14 @@
 
 #import <Foundation/Foundation.h>
 
+@class BootedSimulatorWrapper;
 @interface InProcessSimulator : NSObject
 
-@property (nonatomic, strong) id simulatorDelegate;
+@property (nonatomic, readonly) id simulatorDelegate;
 
-+ (instancetype)setup;
++ (instancetype)sharedSetupIfNeeded;
+
+- (void)traceLaunchBundleId:(NSString *)bundleId withTracePattern:(NSString *)pattern;
+- (void)focusSimulatorDevice:(BootedSimulatorWrapper *)device;
 
 @end

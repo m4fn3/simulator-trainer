@@ -285,6 +285,8 @@
                 self.statusImageView.image = [NSImage imageNamed:NSImageNameStatusPartiallyAvailable];
                 self.tweakStatus.stringValue = @"Simulator not jailbroken";
             }
+            
+            [self.simInterposer focusSimulatorDevice:bootedSim];
         }
         else {
             // Device is not booted: enable boot button
