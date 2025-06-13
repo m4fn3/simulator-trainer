@@ -43,6 +43,7 @@
         orchestrator = [[SimulatorOrchestrationService alloc] initWithHelperConnection:helperConnection];
         
         self.packageService = [[PackageInstallationService alloc] init];
+        self.simInterposer = [InProcessSimulator sharedSetupIfNeeded];
     }
 
     return self;
@@ -104,9 +105,28 @@
     }];
     
     deviceListFullRefreshBlock();
-    
-    self.simInterposer = [InProcessSimulator setup];
 }
+
+- (void)setStatus:(NSString *)statusText {
+    __weak typeof(self) weakSelf = self;
+    ON_MAIN_THREAD(^{
+        weakSelf.tweakStatus.stringValue = statusText;
+    });
+}
+
+- (void)_disableDeviceButtons {
+    self.jailbreakButton.enabled = NO;
+    self.removeJailbreakButton.enabled = NO;
+    self.rebootButton.enabled = NO;
+    self.respringButton.enabled = NO;
+    self.installIPAButton.enabled = NO;
+    self.installTweakButton.enabled = NO;
+    self.bootButton.enabled = NO;
+    self.shutdownButton.enabled = NO;
+    self.openTweakFolderButton.enabled = NO;
+}
+
+#pragma mark - Device List
 
 - (void)refreshDeviceList {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
@@ -197,43 +217,34 @@
 }
 
 - (void)_autoselectDevice {
-    NSInteger selectedDeviceIndex = 0;
-    // Default selection goes to the first-encountered jailbroken booted device, falling
-    // back to the last-encountered booted device, falling back to the first-encountered
-    // iOS-platform device, with the last resort being to just select the first device
-    for (int i = 0; i < allSimDevices.count; i++) {
-        SimulatorWrapper *device = allSimDevices[i];
-        if (device.isBooted && [device isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)device isJailbroken]) {
-            selectedDeviceIndex = i;
-            break;
+    __weak typeof(self) weakSelf = self;
+    ON_MAIN_THREAD(^{
+        NSInteger selectedDeviceIndex = 0;
+        // Default selection goes to the first-encountered jailbroken booted device, falling
+        // back to the last-encountered booted device, falling back to the first-encountered
+        // iOS-platform device, with the last resort being to just select the first device
+        for (int i = 0; i < self->allSimDevices.count; i++) {
+            SimulatorWrapper *device = self->allSimDevices[i];
+            if (device.isBooted && [device isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)device isJailbroken]) {
+                selectedDeviceIndex = i;
+                break;
+            }
+            else if (device.isBooted) {
+                selectedDeviceIndex = i;
+            }
+            else if (!selectedDeviceIndex && [device.platform isEqualToString:@"iOS"]) {
+                selectedDeviceIndex = i;
+            }
         }
-        else if (device.isBooted) {
-            selectedDeviceIndex = i;
+        
+        if (selectedDeviceIndex < 0 || selectedDeviceIndex >= self->allSimDevices.count) {
+            NSLog(@"Invalid device index: %ld", (long)selectedDeviceIndex);
+            return;
         }
-        else if (!selectedDeviceIndex && [device.platform isEqualToString:@"iOS"]) {
-            selectedDeviceIndex = i;
-        }
-    }
-    
-    if (selectedDeviceIndex < 0 || selectedDeviceIndex >= allSimDevices.count) {
-        NSLog(@"Invalid device index: %ld", (long)selectedDeviceIndex);
-        return;
-    }
-
-    [self.devicePopup selectItemAtIndex:selectedDeviceIndex];
-    [self popupListDidSelectDevice:self.devicePopup];
-}
-
-- (void)_disableDeviceButtons {
-    self.jailbreakButton.enabled = NO;
-    self.removeJailbreakButton.enabled = NO;
-    self.rebootButton.enabled = NO;
-    self.respringButton.enabled = NO;
-    self.installIPAButton.enabled = NO;
-    self.installTweakButton.enabled = NO;
-    self.bootButton.enabled = NO;
-    self.shutdownButton.enabled = NO;
-    self.openTweakFolderButton.enabled = NO;
+        
+        [weakSelf.devicePopup selectItemAtIndex:selectedDeviceIndex];
+        [self popupListDidSelectDevice:weakSelf.devicePopup];
+    });
 }
 
 - (void)_updateSelectedDeviceUI {
@@ -319,6 +330,8 @@
     [self _updateSelectedDeviceUI];
 }
 
+#pragma mark - Button handlers
+
 - (void)handleRebootSelected:(NSButton *)sender {
     [self setStatus:@"Rebooting device"];
     [self->orchestrator rebootDevice:(BootedSimulatorWrapper *)self->selectedDevice completion:^(NSError *error) {
@@ -390,11 +403,47 @@
     }];
 }
 
-- (void)setStatus:(NSString *)statusText {
-    __weak typeof(self) weakSelf = self;
-    ON_MAIN_THREAD(^{
-        weakSelf.tweakStatus.stringValue = statusText;
-    });
+- (void)handleInstallTweakSelected:(id)sender {
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setStatus:@"Nothing selected"];
+        return;
+    }
+    
+    NSOpenPanel *openPanel = [NSOpenPanel openPanel];
+    openPanel.canChooseFiles = YES;
+    openPanel.canChooseDirectories = NO;
+    openPanel.allowsMultipleSelection = NO;
+    openPanel.allowedFileTypes = @[@"deb"];
+    [openPanel beginSheetModalForWindow:self.view.window completionHandler:^(NSModalResponse result) {
+        if (result == NSModalResponseOK) {
+            NSURL *debURL = openPanel.URL;
+            if (debURL) {
+                [self processDebFileAtURL:debURL];
+            }
+        }
+    }];
+}
+
+- (void)handleOpenTweakFolderSelected:(id)sender {
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setStatus:@"Nothing selected"];
+        return;
+    }
+    
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
+    if (!bootedSim.isJailbroken || !bootedSim.runtimeRoot) {
+        [self setStatus:@"Jailbreak not active"];
+        return;
+    }
+    
+    NSString *tweakFolder = @"/Library/MobileSubstrate/DynamicLibraries/";
+    NSString *deviceTweakFolder = [bootedSim.runtimeRoot stringByAppendingPathComponent:tweakFolder];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:deviceTweakFolder]) {
+        [self setStatus:[NSString stringWithFormat:@"Tweak folder does not exist: %@", deviceTweakFolder]];
+        return;
+    }
+    
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:deviceTweakFolder]];
 }
 
 #pragma mark - SimulatorWrapperDelegate
@@ -480,6 +529,7 @@
     });
 }
 
+#pragma mark - Tweak Installation
 - (void)processDebFileAtURL:(NSURL *)debURL {
     if (!selectedDevice || !selectedDevice.isBooted) {
         [self setStatus:@"Please select a booted device first."];
@@ -502,50 +552,6 @@
             [self _updateSelectedDeviceUI];
         }
     }];
-}
-
-- (void)handleInstallTweakSelected:(id)sender {
-    if (!selectedDevice || !selectedDevice.isBooted) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    NSOpenPanel *openPanel = [NSOpenPanel openPanel];
-    openPanel.canChooseFiles = YES;
-    openPanel.canChooseDirectories = NO;
-    openPanel.allowsMultipleSelection = NO;
-    openPanel.allowedFileTypes = @[@"deb"];
-    
-    [openPanel beginSheetModalForWindow:self.view.window completionHandler:^(NSModalResponse result) {
-        if (result == NSModalResponseOK) {
-            NSURL *debURL = openPanel.URL;
-            if (debURL) {
-                [self processDebFileAtURL:debURL];
-            }
-        }
-    }];
-}
-
-- (void)handleOpenTweakFolderSelected:(id)sender {
-    if (!selectedDevice || !selectedDevice.isBooted) {
-        [self setStatus:@"Nothing selected"];
-        return;
-    }
-    
-    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
-    if (!bootedSim.isJailbroken || !bootedSim.runtimeRoot) {
-        [self setStatus:@"Jailbreak not active"];
-        return;
-    }
-    
-    NSString *tweakFolder = @"/Library/MobileSubstrate/DynamicLibraries/";
-    NSString *deviceTweakFolder = [bootedSim.runtimeRoot stringByAppendingPathComponent:tweakFolder];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:deviceTweakFolder]) {
-        [self setStatus:[NSString stringWithFormat:@"Tweak folder does not exist: %@", deviceTweakFolder]];
-        return;
-    }
-    
-    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:deviceTweakFolder]];
 }
 
 @end
