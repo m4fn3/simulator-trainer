@@ -54,7 +54,7 @@
         return;
     }
     
-    if (![CommandRunner runCommand:@"/usr/bin/ar" withArguments:@[@"-x", copiedDebPath] cwd:tempExtractDir stdoutString:nil error:&operationError]) {
+    if (![CommandRunner runCommand:@"/usr/bin/ar" withArguments:@[@"-x", copiedDebPath] cwd:tempExtractDir environment:nil stdoutString:nil error:&operationError]) {
         cleanupBlock();
         if (completion) {
             completion(operationError);

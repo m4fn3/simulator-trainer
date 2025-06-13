@@ -15,16 +15,16 @@
 @implementation TerminalWindowController
 
 + (id)presentTerminal {
-    return [self presentTerminalWithExecutable:@"/bin/bash" args:@[] title:nil];
+    return [self presentTerminalWithExecutable:@"/bin/bash" args:@[] env:nil title:nil];
 }
 
-+ (id)presentTerminalWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args title:(NSString *)title {
-    TerminalWindowController *controller = [[self alloc] initWithExecutable:exe args:args title:title];
++ (id)presentTerminalWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args env:(NSArray *)env title:(NSString *)title {
+    TerminalWindowController *controller = [[self alloc] initWithExecutable:exe args:args env:env title:title];
     [controller showWindow:nil];
     return controller;
 }
 
-- (instancetype)initWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args title:(NSString *)title {
+- (instancetype)initWithExecutable:(NSString *)exe args:(NSArray<NSString *> *)args env:(NSArray *)env title:(NSString *)title {
     NSRect initialFrame = NSMakeRect(0, 0, 800, 500);
     NSWindow *termWindow = [[NSWindow alloc] initWithContentRect:initialFrame styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable | NSWindowStyleMaskMiniaturizable) backing:NSBackingStoreBuffered defer:NO];
     
@@ -37,9 +37,11 @@
         _terminalView = [[LocalProcessTerminalView alloc] initWithFrame:initialFrame];
         _terminalView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
         _terminalView.processDelegate = self;
+        _terminalView.font = [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightRegular];
         [termWindow setContentView:_terminalView];
         
-         [_terminalView startProcessWithExecutable:exe args:args environment:nil execName:nil];
+        NSLog(@"env: %@, cmd=%@", env, [NSString stringWithFormat:@"%@ %@", exe, [args componentsJoinedByString:@" "]]);
+         [_terminalView startProcessWithExecutable:exe args:args environment:env execName:nil];
     }
 
     return self;

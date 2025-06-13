@@ -10,10 +10,10 @@
 @implementation CommandRunner
 
 + (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments stdoutString:(NSString * _Nullable * _Nullable)stdoutString error:(NSError ** _Nullable)error {
-    return [self runCommand:command withArguments:arguments cwd:nil stdoutString:stdoutString error:error];
+    return [self runCommand:command withArguments:arguments cwd:nil environment:nil stdoutString:stdoutString error:error];
 }
 
-+ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments cwd:(NSString * _Nullable)cwdPath stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
++ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments cwd:(NSString * _Nullable)cwdPath environment:(NSDictionary * _Nullable)environment stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
     if (!command) {
         NSLog(@"No command provided to runCommand. Command %@, Arguments %@", command, arguments);
         if (errorOut) {
@@ -35,7 +35,14 @@
     
     NSPipe *errorPipe = [NSPipe pipe];
     task.standardError = errorPipe;
-    task.environment = [[NSProcessInfo processInfo] environment];
+    
+    NSDictionary *env = [[NSProcessInfo processInfo] environment];
+    if (environment) {
+        NSMutableDictionary *mutableEnv = [NSMutableDictionary dictionaryWithDictionary:env];
+        [mutableEnv addEntriesFromDictionary:environment];
+        env = mutableEnv;
+    }
+    task.environment = env;
     
     if (cwdPath) {
         task.currentDirectoryPath = cwdPath;
