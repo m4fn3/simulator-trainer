@@ -94,8 +94,10 @@
         return NO;
     }
 
-    NSString *termTitle = [NSString stringWithFormat:@"cycript -- SpringBoard (127.0.0.1:%d)", cycript_server_port];;
-    [TerminalWindowController presentTerminalWithExecutable:cycriptPath args:@[@"-r", [NSString stringWithFormat:@"127.0.0.1:%d", cycript_server_port]] env:nil title:termTitle];
+    NSString *termTitle = [NSString stringWithFormat:@"cycript -- SpringBoard (127.0.0.1:%d)", cycript_server_port];
+    NSArray *cycriptArgs = @[@"-r", [NSString stringWithFormat:@"127.0.0.1:%d", cycript_server_port]];
+    
+    [TerminalWindowController presentTerminalWithExecutable:cycriptPath args:cycriptArgs env:nil title:termTitle];
 
     return YES;
 }

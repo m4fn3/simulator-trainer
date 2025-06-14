@@ -96,25 +96,25 @@
 - (void)convertSimulatorToDylibWithCompletion:(void (^)(NSString *dylibPath))completion {
     // Make a copy of the Simulator.app executable at $TMPDIR/Simulator.dylib
     NSString *simulatorExecutablePath = [[self _simulatorBundlePath] stringByAppendingPathComponent:@"Contents/MacOS/Simulator"];
-    NSString *simulatorDylibPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"Simulator.dylib"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorExecutablePath]) {
-        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+    NSString *simulatorDylibTmpPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"Simulator.dylib"];
+    if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorDylibTmpPath]) {
+        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibTmpPath error:nil];
     }
-    [[NSFileManager defaultManager] copyItemAtPath:simulatorExecutablePath toPath:simulatorDylibPath error:nil];
+    [[NSFileManager defaultManager] copyItemAtPath:simulatorExecutablePath toPath:simulatorDylibTmpPath error:nil];
     
     // Convert the simulator executable into a dylib (in-place)
-    [AppBinaryPatcher thinBinaryAtPath:simulatorDylibPath];
-    if (!convert_to_dylib_inplace(simulatorDylibPath.UTF8String)) {
+    [AppBinaryPatcher thinBinaryAtPath:simulatorDylibTmpPath];
+    if (!convert_to_dylib_inplace(simulatorDylibTmpPath.UTF8String)) {
         NSLog(@"Failed to convert Simulator.app to dylib");
-        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+        [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibTmpPath error:nil];
         return;
     }
     
     // Then codesign the dylib
-    [AppBinaryPatcher codesignItemAtPath:simulatorDylibPath completion:^(BOOL success, NSError * _Nullable error) {
+    [AppBinaryPatcher codesignItemAtPath:simulatorDylibTmpPath completion:^(BOOL success, NSError * _Nullable error) {
         if (error) {
             NSLog(@"Failed to codesign Simulator dylib: %@", error);
-            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibTmpPath error:nil];
             return;
         }
         
@@ -127,18 +127,18 @@
         NSString *simulatorKitFrameworkPath = [xcodeDeveloperDir stringByAppendingPathComponent:@"Library/PrivateFrameworks/SimulatorKit.framework"];
         if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorKitFrameworkPath]) {
             NSLog(@"SimulatorKit.framework not found at expected path: %@", simulatorKitFrameworkPath);
-            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibPath error:nil];
+            [[NSFileManager defaultManager] removeItemAtPath:simulatorDylibTmpPath error:nil];
             return;
         }
         
-        NSString *simulatorKitSymlinkPath = [[simulatorDylibPath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"SimulatorKit.framework"];
+        NSString *simulatorKitSymlinkPath = [[simulatorDylibTmpPath stringByDeletingLastPathComponent] stringByAppendingPathComponent:@"SimulatorKit.framework"];
         NSError *symlinkError = nil;
         if (![[NSFileManager defaultManager] fileExistsAtPath:simulatorKitSymlinkPath]) {
             [[NSFileManager defaultManager] createSymbolicLinkAtPath:simulatorKitSymlinkPath withDestinationPath:simulatorKitFrameworkPath error:&symlinkError];
         }
         
         if (completion) {
-            completion(simulatorDylibPath);
+            completion(simulatorDylibTmpPath);
         }
     }];
 }
@@ -238,7 +238,6 @@
         
         NSString *realPath = [[files firstObject] URLByResolvingSymlinksInPath].path;
         if ([[realPath pathExtension] isEqualToString:@"deb"]) {
-            NSLog(@"Installing a tweak: %@", realPath);
             [[NSNotificationCenter defaultCenter] postNotificationName:@"InstallTweakNotification" object:realPath];
             return YES;
         }
@@ -347,13 +346,19 @@
     }
     
     NSString *libobjseeAssetPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"libobjsee" ofType:@"dylib"];
-    NSString *libObjseePath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"libobjsee.dylib"];
-    if (![[NSFileManager defaultManager] fileExistsAtPath:libObjseePath]) {
-        [[NSFileManager defaultManager] removeItemAtPath:libObjseePath error:nil];
+    NSString *libObjseeTmpPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"libobjsee.dylib"];
+    if ([[NSFileManager defaultManager] fileExistsAtPath:libObjseeTmpPath]) {
+        NSError *error = nil;
+        [[NSFileManager defaultManager] removeItemAtPath:libObjseeTmpPath error:&error];
+        if (error) {
+            NSLog(@"Failed to remove old libobjsee: %@", error);
+            return;
+        }
     }
-    [[NSFileManager defaultManager] copyItemAtPath:libobjseeAssetPath toPath:libObjseePath error:nil];
+    [[NSFileManager defaultManager] copyItemAtPath:libobjseeAssetPath toPath:libObjseeTmpPath error:nil];
     
-    [AppBinaryPatcher codesignItemAtPath:libObjseePath completion:^(BOOL success, NSError * _Nullable error) {
+    bundleId = @"com.objc.blank";
+    [AppBinaryPatcher codesignItemAtPath:libObjseeTmpPath completion:^(BOOL success, NSError * _Nullable error) {
         if (error) {
             NSLog(@"Failed to codesign libobjsee: %@", error);
             return;
@@ -361,8 +366,9 @@
 
         NSArray *xcrunArgs = @[@"simctl", @"launch", @"--console", @"--terminate-running-process", self.focusedSimulatorDevice.udidString, bundleId];
         NSArray *envs = @[
-            [NSString stringWithFormat:@"SIMCTL_CHILD_DYLD_INSERT_LIBRARIES=%@", libObjseePath],
+            [NSString stringWithFormat:@"SIMCTL_CHILD_DYLD_INSERT_LIBRARIES=%@", libObjseeTmpPath],
         ];
+    
         [TerminalWindowController presentTerminalWithExecutable:@"/usr/bin/xcrun" args:xcrunArgs env:envs title:[NSString stringWithFormat:@"Tracing %@", bundleId]];
     }];
 }

@@ -40,7 +40,6 @@
         _terminalView.font = [NSFont monospacedSystemFontOfSize:10 weight:NSFontWeightRegular];
         [termWindow setContentView:_terminalView];
         
-        NSLog(@"env: %@, cmd=%@", env, [NSString stringWithFormat:@"%@ %@", exe, [args componentsJoinedByString:@" "]]);
          [_terminalView startProcessWithExecutable:exe args:args environment:env execName:nil];
     }
 
