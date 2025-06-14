@@ -539,8 +539,8 @@
     }
     
     BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
-    if (!bootedSim) {
-        [self setStatus:@"Selected device is not properly booted."];
+    if (!bootedSim.isJailbroken) {
+        [self setStatus:@"Selected device is not jailbroken."];
         return;
     }
 
@@ -549,7 +549,15 @@
         if (error) {
             NSLog(@"Failed to install deb file: %@", error);
             [self setStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
-        } else {
+        }
+        else {
+            ON_MAIN_THREAD(^{
+                [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:1.0]];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:1.0]];
+                });
+            });
+            
             [self setStatus:@"Installed"];
             [self _updateSelectedDeviceUI];
         }

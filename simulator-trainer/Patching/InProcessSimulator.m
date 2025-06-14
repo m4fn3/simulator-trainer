@@ -367,4 +367,27 @@
     }];
 }
 
+- (void)setSimulatorBorderColor:(NSColor *)color {
+    if (!self.simulatorDelegate) {
+        return;
+    }
+
+    NSDictionary *deviceCoordinators = ((NSDictionary * (*)(id, SEL))objc_msgSend)(self.simulatorDelegate, sel_registerName("deviceCoordinators"));
+    if (!deviceCoordinators) {
+        return;
+    }
+
+    NSColorPanel *panel = [[NSColorPanel alloc] init];
+    [panel setColor:color];
+    
+    for (id coordinator in [deviceCoordinators allValues]) {
+        
+        id deviceWindowController = ((id (*)(id, SEL))objc_msgSend)(coordinator, sel_registerName("deviceWindowController"));
+        if (deviceWindowController) {
+            SEL customChromeTintColorChangedSel = sel_registerName("customChromeTintColorChanged:");
+            ((void (*)(id, SEL, NSColorPanel *))objc_msgSend)(deviceWindowController, customChromeTintColorChangedSel, panel);
+        }
+    }
+}
+
 @end
