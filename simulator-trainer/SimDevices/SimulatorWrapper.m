@@ -40,7 +40,7 @@
 }
 
 - (NSString *)displayString {
-    NSString *deviceLabel = [NSString stringWithFormat:@"   %@ - %@ (%@)", [self name], [self platform], [self udidString]];
+    NSString *deviceLabel = [NSString stringWithFormat:@"   %@ (%@)", [self name], [self udidString]];
     if (self.isBooted) {
         deviceLabel = [@"(Booted) " stringByAppendingString:deviceLabel];
     }
@@ -74,7 +74,7 @@
 }
 
 - (NSString *)name {
-    return ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"name"));
+    return ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"descriptiveName"));
 }
 
 - (NSString *)runtimeVersion {
