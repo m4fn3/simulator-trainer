@@ -7,7 +7,7 @@
 
 #import <objc/message.h>
 #import "BootedSimulatorWrapper.h"
-#import "XCRunInterface.h"
+#import "CommandRunner.h"
 #import "tmpfs_overlay.h"
 
 @implementation BootedSimulatorWrapper
@@ -100,7 +100,7 @@
     }
 
     NSString *libPath = [self.runtimeRoot stringByAppendingPathComponent:@"/usr/lib/libobjc.A.dylib"];
-    NSString *otoolOutput = [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"otool", @"-l", libPath]];
+    NSString *otoolOutput = [CommandRunner xcrunInvokeAndWait:@[@"otool", @"-l", libPath]];
     if (!otoolOutput) {
         NSLog(@"Failed to get otool output");
         return NO;
@@ -177,7 +177,7 @@
 }
 
 - (void)respring {
-    [[XCRunInterface sharedInstance] xcrunInvokeAndWait:@[@"killall", @"-9", @"backboardd"]];
+    [CommandRunner runCommand:@"killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
 }
 
 - (BOOL)isJailbroken {

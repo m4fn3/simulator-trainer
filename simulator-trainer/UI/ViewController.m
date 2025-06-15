@@ -101,7 +101,6 @@
     _simDeviceObserver = [NSNotificationCenter.defaultCenter addObserverForName:@"SimDeviceStateChanged" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
         NSLog(@"Device list changed, refreshing...");
         deviceListFullRefreshBlock();
-        [self _autoselectDevice];
     }];
     
     deviceListFullRefreshBlock();

@@ -357,7 +357,6 @@
     }
     [[NSFileManager defaultManager] copyItemAtPath:libobjseeAssetPath toPath:libObjseeTmpPath error:nil];
     
-    bundleId = @"com.objc.blank";
     [AppBinaryPatcher codesignItemAtPath:libObjseeTmpPath completion:^(BOOL success, NSError * _Nullable error) {
         if (error) {
             NSLog(@"Failed to codesign libobjsee: %@", error);

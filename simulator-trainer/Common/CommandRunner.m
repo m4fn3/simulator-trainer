@@ -115,5 +115,22 @@
     return nil;
 }
 
-                   
++ (NSString *)xcrunInvokeAndWait:(NSArray<NSString *> *)arguments {
+    return [self _runXCRunCommand:arguments environment:nil waitUntilExit:YES];
+}
+
++ (NSString *)_runXCRunCommand:(NSArray<NSString *> *)arguments environment:(NSDictionary<NSString *, NSString *> *)customEnvironment waitUntilExit:(BOOL)waitUntilExit {
+    NSString *output = nil;
+    NSError *error = nil;
+    if ([CommandRunner runCommand:@"/usr/bin/xcrun" withArguments:arguments cwd:nil environment:customEnvironment stdoutString:&output error:&error]) {
+        return output;
+    }
+    
+    if (error) {
+        return [NSString stringWithFormat:@"Error running xcrun command: %@, Error: %@. Output: %@", arguments, error, output];
+    }
+    
+    return nil;
+}
+            
 @end
