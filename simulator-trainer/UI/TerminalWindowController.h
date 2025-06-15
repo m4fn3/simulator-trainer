@@ -6,7 +6,7 @@
 //
 
 @import Cocoa;
-@import SwiftTerm;
+#import <SwiftTerm/SwiftTerm-Swift.h>
 
 NS_ASSUME_NONNULL_BEGIN
 

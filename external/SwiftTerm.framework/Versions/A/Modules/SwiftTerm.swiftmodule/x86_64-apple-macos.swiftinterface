@@ -1,0 +1,714 @@
+// swift-interface-format-version: 1.0
+// swift-compiler-version: Apple Swift version 6.0.3 effective-5.10 (swiftlang-6.0.3.1.10 clang-1600.0.30.1)
+// swift-module-flags: -target x86_64-apple-macos10.15 -enable-objc-interop -enable-library-evolution -swift-version 5 -enforce-exclusivity=checked -O -enable-bare-slash-regex -module-name SwiftTerm
+// swift-module-flags-ignorable: -no-verify-emitted-module-interface
+import AppKit
+import AppKit
+import CoreGraphics
+import CoreText
+import Foundation
+import Swift
+import _Concurrency
+import _StringProcessing
+import _SwiftConcurrencyShims
+public typealias TTImage = AppKit.NSImage
+extension SwiftTerm.TerminalView {
+  @_Concurrency.MainActor @preconcurrency public var caretFrame: CoreFoundation.CGRect {
+    get
+  }
+  @_Concurrency.MainActor @preconcurrency public func getTerminal() -> SwiftTerm.Terminal
+  @_Concurrency.MainActor @preconcurrency public func hostCurrentDirectoryUpdated(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency public func installColors(_ colors: [SwiftTerm.Color])
+  @_Concurrency.MainActor @preconcurrency public func colorChanged(source: SwiftTerm.Terminal, idx: Swift.Int?)
+  @_Concurrency.MainActor @preconcurrency public func setBackgroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  @_Concurrency.MainActor @preconcurrency public func setForegroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  @_Concurrency.MainActor @preconcurrency public func setCursorColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color?, textColor: SwiftTerm.Color?)
+  @_Concurrency.MainActor @preconcurrency public var scrollThumbsize: CoreFoundation.CGFloat {
+    get
+  }
+  @_Concurrency.MainActor @preconcurrency public var scrollPosition: Swift.Double {
+    get
+  }
+  @_Concurrency.MainActor @preconcurrency public var canScroll: Swift.Bool {
+    get
+  }
+  @_Concurrency.MainActor @preconcurrency public func scroll(toPosition: Swift.Double)
+  @_Concurrency.MainActor @preconcurrency public func pageUp()
+  @_Concurrency.MainActor @preconcurrency public func pageDown()
+  @_Concurrency.MainActor @preconcurrency public func scrollUp(lines: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency public func scrollDown(lines: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency public func feed(byteArray: Swift.ArraySlice<Swift.UInt8>)
+  @_Concurrency.MainActor @preconcurrency public func feed(text: Swift.String)
+  @_Concurrency.MainActor @preconcurrency public func resize(cols: Swift.Int, rows: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency public func send(data: Swift.ArraySlice<Swift.UInt8>)
+  @_Concurrency.MainActor @preconcurrency public func send(txt: Swift.String)
+  @_Concurrency.MainActor @preconcurrency public func send(_ bytes: [Swift.UInt8])
+  @_Concurrency.MainActor @preconcurrency public func createImageFromBitmap(source: SwiftTerm.Terminal, bytes: inout [Swift.UInt8], width: Swift.Int, height: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency public func createImage(source: SwiftTerm.Terminal, data: Foundation.Data, width widthRequest: SwiftTerm.ImageSizeRequest, height heightRequest: SwiftTerm.ImageSizeRequest, preserveAspectRatio: Swift.Bool)
+  @_Concurrency.MainActor @preconcurrency public var selectionActive: Swift.Bool {
+    get
+  }
+  @_Concurrency.MainActor @preconcurrency public func getSelection() -> Swift.String?
+  @_Concurrency.MainActor @preconcurrency public func selectAll()
+  @_Concurrency.MainActor @preconcurrency public func selectNone()
+}
+public protocol TerminalViewDelegate : AnyObject {
+  func sizeChanged(source: SwiftTerm.TerminalView, newCols: Swift.Int, newRows: Swift.Int)
+  func setTerminalTitle(source: SwiftTerm.TerminalView, title: Swift.String)
+  func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: Swift.String?)
+  func send(source: SwiftTerm.TerminalView, data: Swift.ArraySlice<Swift.UInt8>)
+  func scrolled(source: SwiftTerm.TerminalView, position: Swift.Double)
+  func requestOpenLink(source: SwiftTerm.TerminalView, link: Swift.String, params: [Swift.String : Swift.String])
+  func bell(source: SwiftTerm.TerminalView)
+  func clipboardCopy(source: SwiftTerm.TerminalView, content: Foundation.Data)
+  func iTermContent(source: SwiftTerm.TerminalView, content: Swift.ArraySlice<Swift.UInt8>)
+  func rangeChanged(source: SwiftTerm.TerminalView, startY: Swift.Int, endY: Swift.Int)
+}
+public class Buffer {
+  public var yDisp: Swift.Int {
+    get
+    set
+  }
+  public var x: Swift.Int {
+    get
+    set(newValue)
+  }
+  public var y: Swift.Int {
+    get
+    set(newValue)
+  }
+  public var scrollBottom: Swift.Int {
+    get
+    set
+  }
+  public var scrollTop: Swift.Int {
+    get
+    set(newValue)
+  }
+  public var savedX: Swift.Int
+  public var savedY: Swift.Int
+  public var marginLeft: Swift.Int
+  public var marginRight: Swift.Int
+  public var savedAttr: SwiftTerm.Attribute
+  public var savedCharset: [Swift.UInt8 : Swift.String]?
+  public init(_ terminal: SwiftTerm.Terminal, hasScrollback: Swift.Bool = true)
+  public func getCorrectBufferLength(_ rows: Swift.Int) -> Swift.Int
+  public func getNullCell(attribute: SwiftTerm.Attribute? = nil) -> SwiftTerm.CharData
+  public func getBlankLine(attribute: SwiftTerm.Attribute, isWrapped: Swift.Bool = false) -> SwiftTerm.BufferLine
+  public func getChar(at: SwiftTerm.Position) -> SwiftTerm.CharData
+  public func getChar(atBufferRelative: SwiftTerm.Position) -> SwiftTerm.CharData
+  public func clear()
+  public func softReset()
+  public var isCursorInViewPort: Swift.Bool {
+    get
+  }
+  public func fillViewportRows(attribute: SwiftTerm.Attribute? = nil)
+  public var isReflowEnabled: Swift.Bool {
+    get
+  }
+  public func resize(newCols: Swift.Int, newRows: Swift.Int)
+  @objc deinit
+}
+public class BufferLine : Swift.CustomDebugStringConvertible {
+  public enum RenderLineMode {
+    case single
+    case doubleWidth
+    case doubledTop
+    case doubledDown
+    public static func == (a: SwiftTerm.BufferLine.RenderLineMode, b: SwiftTerm.BufferLine.RenderLineMode) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public init(cols: Swift.Int, fillData: SwiftTerm.CharData? = nil, isWrapped: Swift.Bool = false)
+  public init(from other: SwiftTerm.BufferLine)
+  public var count: Swift.Int {
+    get
+  }
+  public subscript(index: Swift.Int) -> SwiftTerm.CharData {
+    get
+    set(value)
+  }
+  public func getWidth(index: Swift.Int) -> Swift.Int
+  public func hasContent(index: Swift.Int) -> Swift.Bool
+  public func hasAnyContent() -> Swift.Bool
+  public func insertCells(pos: Swift.Int, n: Swift.Int, rightMargin: Swift.Int, fillData: SwiftTerm.CharData)
+  public func deleteCells(pos: Swift.Int, n: Swift.Int, rightMargin: Swift.Int, fillData: SwiftTerm.CharData)
+  public func replaceCells(start: Swift.Int, end: Swift.Int, fillData: SwiftTerm.CharData)
+  public func resize(cols: Swift.Int, fillData: SwiftTerm.CharData)
+  public func fill(with: SwiftTerm.CharData)
+  public func fill(with: SwiftTerm.CharData, atCol: Swift.Int, len: Swift.Int)
+  public func copyFrom(line: SwiftTerm.BufferLine)
+  public func getTrimmedLength() -> Swift.Int
+  public func copyFrom(_ src: SwiftTerm.BufferLine, srcCol: Swift.Int, dstCol: Swift.Int, len: Swift.Int)
+  public func translateToString(trimRight: Swift.Bool = false, startCol: Swift.Int = 0, endCol: Swift.Int = -1) -> Swift.String
+  public func attach(image: any SwiftTerm.TerminalImage)
+  public var debugDescription: Swift.String {
+    get
+  }
+  @objc deinit
+}
+public struct CharacterStyle : Swift.OptionSet, Swift.Hashable {
+  public let rawValue: Swift.UInt8
+  public init(rawValue: Swift.UInt8)
+  public init(attribute: Swift.Int32)
+  public static let none: SwiftTerm.CharacterStyle
+  public static let bold: SwiftTerm.CharacterStyle
+  public static let underline: SwiftTerm.CharacterStyle
+  public static let blink: SwiftTerm.CharacterStyle
+  public static let inverse: SwiftTerm.CharacterStyle
+  public static let invisible: SwiftTerm.CharacterStyle
+  public static let dim: SwiftTerm.CharacterStyle
+  public static let italic: SwiftTerm.CharacterStyle
+  public static let crossedOut: SwiftTerm.CharacterStyle
+  public typealias ArrayLiteralElement = SwiftTerm.CharacterStyle
+  public typealias Element = SwiftTerm.CharacterStyle
+  public typealias RawValue = Swift.UInt8
+}
+public struct Attribute : Swift.Equatable, Swift.Hashable {
+  public enum Color : Swift.Equatable, Swift.Hashable {
+    case ansi256(code: Swift.UInt8)
+    case trueColor(red: Swift.UInt8, green: Swift.UInt8, blue: Swift.UInt8)
+    case defaultColor
+    case defaultInvertedColor
+    public static func == (lhs: SwiftTerm.Attribute.Color, rhs: SwiftTerm.Attribute.Color) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public static let empty: SwiftTerm.Attribute
+  public var fg: SwiftTerm.Attribute.Color, bg: SwiftTerm.Attribute.Color
+  public var style: SwiftTerm.CharacterStyle {
+    get
+  }
+  public static func == (lhs: SwiftTerm.Attribute, rhs: SwiftTerm.Attribute) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct TinyAtom {
+  public static func lookup(value: Any) -> SwiftTerm.TinyAtom?
+  public static func release(code: Swift.UInt16)
+  public var target: Any? {
+    get
+  }
+}
+public struct CharData : Swift.CustomDebugStringConvertible {
+  public var debugDescription: Swift.String {
+    get
+  }
+  public var width: Swift.Int8 {
+    get
+  }
+  public var attribute: SwiftTerm.Attribute
+  public var isSimpleRune: Swift.Bool {
+    get
+  }
+  public mutating func setPayload(atom: SwiftTerm.TinyAtom)
+  public func getPayload() -> Any?
+  public var hasPayload: Swift.Bool {
+    get
+  }
+  public static var Null: SwiftTerm.CharData
+  public mutating func setValue(char: Swift.Character, size: Swift.Int32)
+  public func getCharacter() -> Swift.Character
+}
+public class ImageCell {
+  public init(_ image: SwiftTerm.TTImage)
+  @objc deinit
+}
+@_hasMissingDesignatedInitializers public class Color : Swift.Hashable {
+  public var red: Swift.UInt16
+  public var green: Swift.UInt16
+  public var blue: Swift.UInt16
+  public static func == (lhs: SwiftTerm.Color, rhs: SwiftTerm.Color) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public init(red: Swift.UInt16, green: Swift.UInt16, blue: Swift.UInt16)
+  @objc deinit
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+@_hasMissingDesignatedInitializers public class EscapeSequenceParser {
+  public typealias OscHandler = (Swift.ArraySlice<Swift.UInt8>) -> ()
+  public typealias OscHandlerFallback = (Swift.Int, Swift.ArraySlice<Swift.UInt8>) -> ()
+  public var oscHandlers: [Swift.Int : SwiftTerm.EscapeSequenceParser.OscHandler]
+  @objc deinit
+}
+public struct EscapeSequences {
+  public static let cmdNewLine: [Swift.UInt8]
+  public static let cmdRet: [Swift.UInt8]
+  public static let cmdEsc: [Swift.UInt8]
+  public static let cmdDel: [Swift.UInt8]
+  public static let cmdDelKey: [Swift.UInt8]
+  public static let moveUpApp: [Swift.UInt8]
+  public static let moveUpNormal: [Swift.UInt8]
+  public static let moveDownApp: [Swift.UInt8]
+  public static let moveDownNormal: [Swift.UInt8]
+  public static let moveLeftApp: [Swift.UInt8]
+  public static let moveLeftNormal: [Swift.UInt8]
+  public static let moveRightApp: [Swift.UInt8]
+  public static let moveRightNormal: [Swift.UInt8]
+  public static let moveHomeApp: [Swift.UInt8]
+  public static let moveHomeNormal: [Swift.UInt8]
+  public static let moveEndApp: [Swift.UInt8]
+  public static let moveEndNormal: [Swift.UInt8]
+  public static let cmdTab: [Swift.UInt8]
+  public static let cmdBackTab: [Swift.UInt8]
+  public static let cmdPageUp: [Swift.UInt8]
+  public static let cmdPageDown: [Swift.UInt8]
+  public static let cmdInsert: [Swift.UInt8]
+  public static let emacsBack: [Swift.UInt8]
+  public static let emacsForward: [Swift.UInt8]
+  public static let cmdF: [[Swift.UInt8]]
+}
+public class HeadlessTerminal : SwiftTerm.TerminalDelegate, SwiftTerm.LocalProcessDelegate {
+  public var terminal: SwiftTerm.Terminal! {
+    get
+  }
+  public init(queue: Dispatch.DispatchQueue? = nil, options: SwiftTerm.TerminalOptions = TerminalOptions.default, onEnd: @escaping (_ exitCode: Swift.Int32?) -> ())
+  public func processTerminated(_ source: SwiftTerm.LocalProcess, exitCode: Swift.Int32)
+  public func dataReceived(slice: Swift.ArraySlice<Swift.UInt8>)
+  public func send(source: SwiftTerm.Terminal, data: Swift.ArraySlice<Swift.UInt8>)
+  public func getWindowSize() -> Darwin.winsize
+  public func mouseModeChanged(source: SwiftTerm.Terminal)
+  public func hostCurrentDirectoryUpdated(source: SwiftTerm.Terminal)
+  public func colorChanged(source: SwiftTerm.Terminal, idx: Swift.Int)
+  public var images: [([Swift.UInt8], Swift.Int, Swift.Int)]
+  public func createImageFromBitmap(source: SwiftTerm.Terminal, bytes: inout [Swift.UInt8], width: Swift.Int, height: Swift.Int)
+  @objc deinit
+}
+public protocol LocalProcessDelegate : AnyObject {
+  func processTerminated(_ source: SwiftTerm.LocalProcess, exitCode: Swift.Int32)
+  func dataReceived(slice: Swift.ArraySlice<Swift.UInt8>)
+  func getWindowSize() -> Darwin.winsize
+}
+@objc public class LocalProcess : ObjectiveC.NSObject {
+  public var childfd: Swift.Int32 {
+    get
+  }
+  @objc public var shellPid: sys_types.pid_t {
+    get
+  }
+  public init(delegate: any SwiftTerm.LocalProcessDelegate, dispatchQueue: Dispatch.DispatchQueue? = nil)
+  public func send(data: Swift.ArraySlice<Swift.UInt8>)
+  @objc public var running: Swift.Bool {
+    get
+  }
+  public func startProcess(executable: Swift.String = "/bin/bash", args: [Swift.String] = [], environment: [Swift.String]? = nil, execName: Swift.String? = nil)
+  public func terminate()
+  public func setHostLogging(directory: Swift.String?)
+  @objc deinit
+}
+@objc @_hasMissingDesignatedInitializers @_Concurrency.MainActor @preconcurrency public class TerminalDebugView : AppKit.NSView {
+  @_Concurrency.MainActor @preconcurrency public func update()
+  @_Concurrency.MainActor @preconcurrency public init(frame: CoreFoundation.CGRect, terminal: SwiftTerm.TerminalView)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func draw(_ dirtyRect: Foundation.NSRect)
+  @objc deinit
+}
+extension AppKit.NSView {
+  @_Concurrency.MainActor @preconcurrency public func pending(_ msg: Swift.String = "PENDING RECTS")
+}
+@objc public protocol LocalProcessTerminalViewDelegate {
+  @objc func sizeChanged(source: SwiftTerm.LocalProcessTerminalView, newCols: Swift.Int, newRows: Swift.Int)
+  @objc func setTerminalTitle(source: SwiftTerm.LocalProcessTerminalView, title: Swift.String)
+  @objc func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: Swift.String?)
+  @objc func processTerminated(source: SwiftTerm.TerminalView, exitCode: Swift.Int32)
+}
+@objc @_Concurrency.MainActor @preconcurrency open class LocalProcessTerminalView : SwiftTerm.TerminalView, SwiftTerm.TerminalViewDelegate, SwiftTerm.LocalProcessDelegate {
+  @objc @_Concurrency.MainActor @preconcurrency public var process: SwiftTerm.LocalProcess!
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(frame: CoreFoundation.CGRect)
+  @_Concurrency.MainActor @preconcurrency @objc required dynamic public init?(coder: Foundation.NSCoder)
+  @objc @_Concurrency.MainActor @preconcurrency weak public var processDelegate: (any SwiftTerm.LocalProcessTerminalViewDelegate)?
+  @objc @_Concurrency.MainActor @preconcurrency public func sizeChanged(source: SwiftTerm.TerminalView, newCols: Swift.Int, newRows: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency public func clipboardCopy(source: SwiftTerm.TerminalView, content: Foundation.Data)
+  @objc @_Concurrency.MainActor @preconcurrency public func setTerminalTitle(source: SwiftTerm.TerminalView, title: Swift.String)
+  @objc @_Concurrency.MainActor @preconcurrency public func hostCurrentDirectoryUpdate(source: SwiftTerm.TerminalView, directory: Swift.String?)
+  @_Concurrency.MainActor @preconcurrency open func send(source: SwiftTerm.TerminalView, data: Swift.ArraySlice<Swift.UInt8>)
+  @objc @_Concurrency.MainActor @preconcurrency public func setHostLogging(directory: Swift.String)
+  @_Concurrency.MainActor @preconcurrency open func scrolled(source: SwiftTerm.TerminalView, position: Swift.Double)
+  @_Concurrency.MainActor @preconcurrency open func rangeChanged(source: SwiftTerm.TerminalView, startY: Swift.Int, endY: Swift.Int)
+  @objc @_Concurrency.MainActor @preconcurrency public func startProcess(executable: Swift.String = "/bin/bash", args: [Swift.String] = [], environment: [Swift.String]? = nil, execName: Swift.String? = nil)
+  @objc @_Concurrency.MainActor @preconcurrency open func processTerminated(_ source: SwiftTerm.LocalProcess, exitCode: Swift.Int32)
+  @_Concurrency.MainActor @preconcurrency open func dataReceived(slice: Swift.ArraySlice<Swift.UInt8>)
+  @objc @_Concurrency.MainActor @preconcurrency open func getWindowSize() -> Darwin.winsize
+  @objc deinit
+}
+@_inheritsConvenienceInitializers @objc @_Concurrency.MainActor @preconcurrency open class TerminalView : AppKit.NSView, AppKit.NSTextInputClient, AppKit.NSUserInterfaceValidations, SwiftTerm.TerminalDelegate {
+  @_Concurrency.MainActor @preconcurrency weak public var terminalDelegate: (any SwiftTerm.TerminalViewDelegate)?
+  @_Concurrency.MainActor @preconcurrency public var caretViewTracksFocus: Swift.Bool {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public var terminal: SwiftTerm.Terminal!
+  @_Concurrency.MainActor @preconcurrency public var disableFullRedrawOnAnyChanges: Swift.Bool
+  @objc @_Concurrency.MainActor @preconcurrency public var font: AppKit.NSFont {
+    @objc get
+    @objc set
+  }
+  @_Concurrency.MainActor @preconcurrency public init(frame: CoreFoundation.CGRect, font: AppKit.NSFont?)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public init(frame: CoreFoundation.CGRect)
+  @_Concurrency.MainActor @preconcurrency @objc required dynamic public init?(coder: Foundation.NSCoder)
+  @objc deinit
+  @_Concurrency.MainActor @preconcurrency public var backspaceSendsControlH: Swift.Bool
+  @_Concurrency.MainActor @preconcurrency public var nativeForegroundColor: AppKit.NSColor {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public var nativeBackgroundColor: AppKit.NSColor {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public var useBrightColors: Swift.Bool
+  @_Concurrency.MainActor @preconcurrency public var caretColor: AppKit.NSColor {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public var caretTextColor: AppKit.NSColor? {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public var selectedTextBackgroundColor: AppKit.NSColor {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency public func configureNativeColors()
+  @_Concurrency.MainActor @preconcurrency open func bufferActivated(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency open func send(source: SwiftTerm.Terminal, data: Swift.ArraySlice<Swift.UInt8>)
+  @_Concurrency.MainActor @preconcurrency open func getOptimalFrameSize() -> Foundation.NSRect
+  @_Concurrency.MainActor @preconcurrency open func scrolled(source terminal: SwiftTerm.Terminal, yDisp: Swift.Int)
+  @_Concurrency.MainActor @preconcurrency open func linefeed(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency public var allowMouseReporting: Swift.Bool
+  @_Concurrency.MainActor @preconcurrency public var notifyUpdateChanges: Swift.Bool
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic open func viewWillDraw()
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func draw(_ dirtyRect: Foundation.NSRect)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func cursorUpdate(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic open var frame: Foundation.NSRect {
+    @objc get
+    @objc set(newValue)
+  }
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic open func setFrameSize(_ newSize: Foundation.NSSize)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func resizeSubviews(withOldSize oldSize: Foundation.NSSize)
+  @_Concurrency.MainActor @preconcurrency open var hasFocus: Swift.Bool {
+    get
+    set
+  }
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func becomeFirstResponder() -> Swift.Bool
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func resignFirstResponder() -> Swift.Bool
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public var acceptsFirstResponder: Swift.Bool {
+    @objc get
+  }
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func flagsChanged(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func mouseExited(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency public var optionAsMetaKey: Swift.Bool
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func keyDown(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func doCommand(by selector: ObjectiveC.Selector)
+  @_Concurrency.MainActor @preconcurrency @objc open func insertText(_ string: Any, replacementRange: Foundation.NSRange)
+  @_Concurrency.MainActor @preconcurrency @objc open func setMarkedText(_ string: Any, selectedRange: Foundation.NSRange, replacementRange: Foundation.NSRange)
+  @_Concurrency.MainActor @preconcurrency @objc open func unmarkText()
+  @_Concurrency.MainActor @preconcurrency @objc open func selectedRange() -> Foundation.NSRange
+  @_Concurrency.MainActor @preconcurrency @objc open func markedRange() -> Foundation.NSRange
+  @_Concurrency.MainActor @preconcurrency @objc open func hasMarkedText() -> Swift.Bool
+  @_Concurrency.MainActor @preconcurrency @objc open func attributedSubstring(forProposedRange range: Foundation.NSRange, actualRange: Foundation.NSRangePointer?) -> Foundation.NSAttributedString?
+  @_Concurrency.MainActor @preconcurrency @objc open func validAttributesForMarkedText() -> [Foundation.NSAttributedString.Key]
+  @_Concurrency.MainActor @preconcurrency @objc open func firstRect(forCharacterRange range: Foundation.NSRange, actualRange: Foundation.NSRangePointer?) -> Foundation.NSRect
+  @_Concurrency.MainActor @preconcurrency @objc open func characterIndex(for point: Foundation.NSPoint) -> Swift.Int
+  @_Concurrency.MainActor @preconcurrency @objc open func validateUserInterfaceItem(_ item: any AppKit.NSValidatedUserInterfaceItem) -> Swift.Bool
+  @_Concurrency.MainActor @preconcurrency open func selectionChanged(source: SwiftTerm.Terminal)
+  @objc @_Concurrency.MainActor @preconcurrency open func paste(_ sender: Any)
+  @objc @_Concurrency.MainActor @preconcurrency open func copy(_ sender: Any)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func selectAll(_ sender: Any?)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func mouseDown(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func mouseUp(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func mouseDragged(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func mouseMoved(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func scrollWheel(with event: AppKit.NSEvent)
+  @_Concurrency.MainActor @preconcurrency @objc override dynamic public func resetCursorRects()
+  @_Concurrency.MainActor @preconcurrency public func resetFontSize()
+  @_Concurrency.MainActor @preconcurrency open func showCursor(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency open func hideCursor(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency open func cursorStyleChanged(source: SwiftTerm.Terminal, newStyle: SwiftTerm.CursorStyle)
+  @_Concurrency.MainActor @preconcurrency open func bell(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency public func isProcessTrusted(source: SwiftTerm.Terminal) -> Swift.Bool
+  @_Concurrency.MainActor @preconcurrency public func mouseModeChanged(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency public func setTerminalTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  @_Concurrency.MainActor @preconcurrency public func sizeChanged(source: SwiftTerm.Terminal)
+  @_Concurrency.MainActor @preconcurrency public func setTerminalIconTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  @_Concurrency.MainActor @preconcurrency public func windowCommand(source: SwiftTerm.Terminal, command: SwiftTerm.Terminal.WindowManipulationCommand) -> [Swift.UInt8]?
+  @_Concurrency.MainActor @preconcurrency public func iTermContent(source: SwiftTerm.Terminal, content: Swift.ArraySlice<Swift.UInt8>)
+}
+extension SwiftTerm.TerminalViewDelegate {
+  public func requestOpenLink(source: SwiftTerm.TerminalView, link: Swift.String, params: [Swift.String : Swift.String])
+  public func bell(source: SwiftTerm.TerminalView)
+  public func iTermContent(source: SwiftTerm.TerminalView, content: Swift.ArraySlice<Swift.UInt8>)
+}
+public struct Position : Swift.Equatable, Swift.CustomDebugStringConvertible {
+  public var col: Swift.Int, row: Swift.Int
+  public init(col: Swift.Int, row: Swift.Int)
+  public enum compareResult {
+    case before
+    case after
+    case equal
+    public static func == (a: SwiftTerm.Position.compareResult, b: SwiftTerm.Position.compareResult) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public static func compare(_ a: SwiftTerm.Position, _ b: SwiftTerm.Position) -> SwiftTerm.Position.compareResult
+  public var debugDescription: Swift.String {
+    get
+  }
+  public static func == (a: SwiftTerm.Position, b: SwiftTerm.Position) -> Swift.Bool
+}
+@_hasMissingDesignatedInitializers public class PseudoTerminalHelpers {
+  public static func fork(andExec: Swift.String, args: [Swift.String], env: [Swift.String], desiredWindowSize: inout Darwin.winsize) -> (pid: sys_types.pid_t, masterFd: Swift.Int32)?
+  public static func setWinSize(masterPtyDescriptor: Swift.Int32, windowSize: inout Darwin.winsize) -> Swift.Int32
+  public static func availableBytes(fd: Swift.Int32) -> (status: Swift.Int32, size: Swift.Int32)
+  @objc deinit
+}
+public protocol TerminalDelegate : AnyObject {
+  func showCursor(source: SwiftTerm.Terminal)
+  func hideCursor(source: SwiftTerm.Terminal)
+  func setTerminalTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  func setTerminalIconTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  @discardableResult
+  func windowCommand(source: SwiftTerm.Terminal, command: SwiftTerm.Terminal.WindowManipulationCommand) -> [Swift.UInt8]?
+  func sizeChanged(source: SwiftTerm.Terminal)
+  func send(source: SwiftTerm.Terminal, data: Swift.ArraySlice<Swift.UInt8>)
+  func scrolled(source: SwiftTerm.Terminal, yDisp: Swift.Int)
+  func linefeed(source: SwiftTerm.Terminal)
+  func bufferActivated(source: SwiftTerm.Terminal)
+  func bell(source: SwiftTerm.Terminal)
+  func selectionChanged(source: SwiftTerm.Terminal)
+  func isProcessTrusted(source: SwiftTerm.Terminal) -> Swift.Bool
+  func mouseModeChanged(source: SwiftTerm.Terminal)
+  func cursorStyleChanged(source: SwiftTerm.Terminal, newStyle: SwiftTerm.CursorStyle)
+  func hostCurrentDirectoryUpdated(source: SwiftTerm.Terminal)
+  func hostCurrentDocumentUpdated(source: SwiftTerm.Terminal)
+  func colorChanged(source: SwiftTerm.Terminal, idx: Swift.Int?)
+  func setForegroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  func setBackgroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  func setCursorColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color?)
+  func getColors(source: SwiftTerm.Terminal) -> (foreground: SwiftTerm.Color, background: SwiftTerm.Color)
+  func iTermContent(source: SwiftTerm.Terminal, content: Swift.ArraySlice<Swift.UInt8>)
+  func clipboardCopy(source: SwiftTerm.Terminal, content: Foundation.Data)
+  func notify(source: SwiftTerm.Terminal, title: Swift.String, body: Swift.String)
+  func createImageFromBitmap(source: SwiftTerm.Terminal, bytes: inout [Swift.UInt8], width: Swift.Int, height: Swift.Int)
+  func createImage(source: SwiftTerm.Terminal, data: Foundation.Data, width: SwiftTerm.ImageSizeRequest, height: SwiftTerm.ImageSizeRequest, preserveAspectRatio: Swift.Bool)
+}
+public enum ImageSizeRequest {
+  case auto
+  case cells(Swift.Int)
+  case pixels(Swift.Int)
+  case percent(Swift.Int)
+}
+public protocol TerminalImage {
+  var pixelWidth: Swift.Int { get }
+  var pixelHeight: Swift.Int { get }
+  var col: Swift.Int { get set }
+}
+open class Terminal {
+  public var cols: Swift.Int {
+    get
+  }
+  public var rows: Swift.Int {
+    get
+  }
+  public var options: SwiftTerm.TerminalOptions
+  public var applicationCursor: Swift.Bool
+  public var bracketedPasteMode: Swift.Bool {
+    get
+  }
+  public var parser: SwiftTerm.EscapeSequenceParser
+  public var hostCurrentDirectory: Swift.String? {
+    get
+  }
+  public var hostCurrentDocument: Swift.String? {
+    get
+  }
+  public var currentAttribute: SwiftTerm.Attribute {
+    get
+  }
+  public var foregroundColor: SwiftTerm.Color {
+    get
+    set
+  }
+  public var backgroundColor: SwiftTerm.Color {
+    get
+    set
+  }
+  public var cursorColor: SwiftTerm.Color? {
+    get
+    set
+  }
+  public enum MouseMode {
+    case off
+    case x10
+    case vt200
+    case buttonEventTracking
+    case anyEvent
+    public func sendMotionEvent() -> Swift.Bool
+    public func sendsModifiers() -> Swift.Bool
+    public static func == (a: SwiftTerm.Terminal.MouseMode, b: SwiftTerm.Terminal.MouseMode) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public var mouseMode: SwiftTerm.Terminal.MouseMode {
+    get
+  }
+  public func getDims() -> (cols: Swift.Int, rows: Swift.Int)
+  public init(delegate: any SwiftTerm.TerminalDelegate, options: SwiftTerm.TerminalOptions = TerminalOptions.default)
+  public func installPalette(colors: [SwiftTerm.Color])
+  public var buffer: SwiftTerm.Buffer {
+    get
+  }
+  public func getCharData(col: Swift.Int, row: Swift.Int) -> SwiftTerm.CharData?
+  public func getLine(row: Swift.Int) -> SwiftTerm.BufferLine?
+  public func getScrollInvariantLine(row: Swift.Int) -> SwiftTerm.BufferLine?
+  public func getCharacter(col: Swift.Int, row: Swift.Int) -> Swift.Character?
+  public func setup(isReset: Swift.Bool = false)
+  public func registerOscHandler(code: Swift.Int, handler: @escaping (Swift.ArraySlice<Swift.UInt8>) -> ())
+  public enum WindowManipulationCommand {
+    case deiconifyWindow
+    case iconifyWindow
+    case moveWindowTo(x: Swift.Int, y: Swift.Int)
+    case resizeWindowTo(width: Swift.Int, height: Swift.Int)
+    case bringToFront
+    case sendToBack
+    case refreshWindow
+    case resizeTo(cols: Swift.Int, rows: Swift.Int)
+    case restoreMaximizedWindow
+    case maximizeWindow
+    case maximizeWindowVertically
+    case maximizeWindowHorizontally
+    case undoFullScreen
+    case switchToFullScreen
+    case toggleFullScreen
+    case reportTerminalState
+    case reportTerminalPosition
+    case reportTextAreaPosition
+    case reporttextAreaPixelDimension
+    case reportSizeOfScreenInPixels
+    case reportCellSizeInPixels
+    case reportTextAreaCharacters
+    case reportScreenSizeCharacters
+    case reportIconLabel
+    case reportWindowTitle
+    case resizeTo(lines: Swift.Int)
+  }
+  public func setCursorStyle(_ style: SwiftTerm.CursorStyle)
+  public func softReset()
+  public func sendResponse(text: Swift.String)
+  public func sendResponse(_ items: Any...)
+  public var silentLog: Swift.Bool
+  public func feed(byteArray: [Swift.UInt8])
+  public func feed(text: Swift.String)
+  public func feed(buffer: Swift.ArraySlice<Swift.UInt8>)
+  public func parse(buffer: Swift.ArraySlice<Swift.UInt8>)
+  public func updateFullScreen()
+  public func getUpdateRange() -> (startY: Swift.Int, endY: Swift.Int)?
+  public func changedLines() -> Swift.Set<Swift.Int>
+  public func garbageCollectPayload()
+  public func getScrollInvariantUpdateRange() -> (startY: Swift.Int, endY: Swift.Int)?
+  public func clearUpdateRange()
+  public func getCursorLocation() -> (x: Swift.Int, y: Swift.Int)
+  public func getTopVisibleRow() -> Swift.Int
+  public func resetToInitialState()
+  public func scroll(isWrapped: Swift.Bool = false)
+  public func emitLineFeed()
+  public func resize(cols: Swift.Int, rows: Swift.Int)
+  public func refresh(startRow: Swift.Int, endRow: Swift.Int)
+  public func showCursor()
+  public func hideCursor()
+  public func encodeButton(button: Swift.Int, release: Swift.Bool, shift: Swift.Bool, meta: Swift.Bool, control: Swift.Bool) -> Swift.Int
+  public func sendEvent(buttonFlags: Swift.Int, x: Swift.Int, y: Swift.Int)
+  public func sendEvent(buttonFlags: Swift.Int, x: Swift.Int, y: Swift.Int, pixelX: Swift.Int, pixelY: Swift.Int)
+  public func sendMotion(buttonFlags: Swift.Int, x: Swift.Int, y: Swift.Int, pixelX: Swift.Int, pixelY: Swift.Int)
+  public func setTitle(text: Swift.String)
+  public func setIconTitle(text: Swift.String)
+  public static func getEnvironmentVariables(termName: Swift.String? = nil, trueColor: Swift.Bool = true) -> [Swift.String]
+  public enum BufferKind {
+    case active
+    case normal
+    case alt
+    public static func == (a: SwiftTerm.Terminal.BufferKind, b: SwiftTerm.Terminal.BufferKind) -> Swift.Bool
+    public func hash(into hasher: inout Swift.Hasher)
+    public var hashValue: Swift.Int {
+      get
+    }
+  }
+  public func getBufferAsData(kind: SwiftTerm.Terminal.BufferKind = .active, encoding: Swift.String.Encoding = .utf8) -> Foundation.Data
+  public func getText(start: SwiftTerm.Position, end: SwiftTerm.Position) -> Swift.String
+  @objc deinit
+}
+extension SwiftTerm.TerminalDelegate {
+  public func cursorStyleChanged(source: SwiftTerm.Terminal, newStyle: SwiftTerm.CursorStyle)
+  public func setTerminalTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  public func setTerminalIconTitle(source: SwiftTerm.Terminal, title: Swift.String)
+  public func scrolled(source: SwiftTerm.Terminal, yDisp: Swift.Int)
+  public func linefeed(source: SwiftTerm.Terminal)
+  public func bufferActivated(source: SwiftTerm.Terminal)
+  public func windowCommand(source: SwiftTerm.Terminal, command: SwiftTerm.Terminal.WindowManipulationCommand) -> [Swift.UInt8]?
+  public func sizeChanged(source: SwiftTerm.Terminal)
+  public func bell(source: SwiftTerm.Terminal)
+  public func isProcessTrusted(source: SwiftTerm.Terminal) -> Swift.Bool
+  public func selectionChanged(source: SwiftTerm.Terminal)
+  public func showCursor(source: SwiftTerm.Terminal)
+  public func hideCursor(source: SwiftTerm.Terminal)
+  public func mouseModeChanged(source: SwiftTerm.Terminal)
+  public func hostCurrentDirectoryUpdated(source: SwiftTerm.Terminal)
+  public func hostCurrentDocumentUpdated(source: SwiftTerm.Terminal)
+  public func colorChanged(source: SwiftTerm.Terminal, idx: Swift.Int?)
+  public func getColors(source: SwiftTerm.Terminal) -> (foreground: SwiftTerm.Color, background: SwiftTerm.Color)
+  public func setForegroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  public func setBackgroundColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color)
+  public func setCursorColor(source: SwiftTerm.Terminal, color: SwiftTerm.Color?)
+  public func iTermContent(source: SwiftTerm.Terminal, content: Swift.ArraySlice<Swift.UInt8>)
+  public func clipboardCopy(source: SwiftTerm.Terminal, content: Foundation.Data)
+  public func notify(source: SwiftTerm.Terminal, title: Swift.String, body: Swift.String)
+  public func createImageFromBitmap(source: SwiftTerm.Terminal, bytes: inout [Swift.UInt8], width: Swift.Int, height: Swift.Int)
+  public func createImage(source: SwiftTerm.Terminal, data: Foundation.Data, width: SwiftTerm.ImageSizeRequest, height: SwiftTerm.ImageSizeRequest, preserveAspectRatio: Swift.Bool)
+}
+public enum CursorStyle {
+  case blinkBlock
+  case steadyBlock
+  case blinkUnderline
+  case steadyUnderline
+  case blinkBar
+  case steadyBar
+  public static func from(string: Swift.String) -> SwiftTerm.CursorStyle?
+  public static func == (a: SwiftTerm.CursorStyle, b: SwiftTerm.CursorStyle) -> Swift.Bool
+  public func hash(into hasher: inout Swift.Hasher)
+  public var hashValue: Swift.Int {
+    get
+  }
+}
+public struct TerminalOptions {
+  public var cols: Swift.Int
+  public var rows: Swift.Int
+  public var convertEol: Swift.Bool
+  public var termName: Swift.String
+  public var cursorStyle: SwiftTerm.CursorStyle
+  public var screenReaderMode: Swift.Bool
+  public var scrollback: Swift.Int
+  public var tabStopWidth: Swift.Int
+  public var enableSixelReported: Swift.Bool
+  public static let `default`: SwiftTerm.TerminalOptions
+  public init(cols: Swift.Int = Self.default.cols, rows: Swift.Int = Self.default.rows, convertEol: Swift.Bool = Self.default.convertEol, termName: Swift.String = Self.default.termName, cursorStyle: SwiftTerm.CursorStyle = Self.default.cursorStyle, screenReaderMode: Swift.Bool = Self.default.screenReaderMode, scrollback: Swift.Int = Self.default.scrollback, tabStopWidth: Swift.Int = Self.default.tabStopWidth, enableSixelReported: Swift.Bool = Self.default.enableSixelReported)
+}
+extension SwiftTerm.BufferLine.RenderLineMode : Swift.Equatable {}
+extension SwiftTerm.BufferLine.RenderLineMode : Swift.Hashable {}
+extension SwiftTerm.Position.compareResult : Swift.Equatable {}
+extension SwiftTerm.Position.compareResult : Swift.Hashable {}
+extension SwiftTerm.Terminal.MouseMode : Swift.Equatable {}
+extension SwiftTerm.Terminal.MouseMode : Swift.Hashable {}
+extension SwiftTerm.Terminal.BufferKind : Swift.Equatable {}
+extension SwiftTerm.Terminal.BufferKind : Swift.Hashable {}
+extension SwiftTerm.CursorStyle : Swift.Equatable {}
+extension SwiftTerm.CursorStyle : Swift.Hashable {}

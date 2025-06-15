@@ -9,9 +9,10 @@
 /* Begin PBXBuildFile section */
 		5F19A80C2DEF018600D52D33 /* hooks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F19A8062DEF018500D52D33 /* hooks.framework */; };
 		5F19A80D2DEF018600D52D33 /* hooks.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5F19A8062DEF018500D52D33 /* hooks.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5F4904CF2DFE4BEB00D56F9D /* SwiftTerm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */; };
+		5F4904D02DFE4BEB00D56F9D /* SwiftTerm.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */; };
 		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = 5FA72A522DE9E11C00B510F9 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				5F4904D02DFE4BEB00D56F9D /* SwiftTerm.framework in Embed Frameworks */,
 				5F19A80D2DEF018600D52D33 /* hooks.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -67,6 +69,7 @@
 /* Begin PBXFileReference section */
 		5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.objc.simulator-trainer.SimRuntimeHelper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F19A8062DEF018500D52D33 /* hooks.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = hooks.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftTerm.framework; sourceTree = "<group>"; };
 		5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		5FC346D52DC0A55100572D7F /* simulator-trainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "simulator-trainer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -177,14 +180,22 @@
 			buildActionMask = 2147483647;
 			files = (
 				5F19A80C2DEF018600D52D33 /* hooks.framework in Frameworks */,
-				5FA72A532DE9E11C00B510F9 /* SwiftTerm in Frameworks */,
 				5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */,
+				5F4904CF2DFE4BEB00D56F9D /* SwiftTerm.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5F4904CD2DFE4BE600D56F9D /* external */ = {
+			isa = PBXGroup;
+			children = (
+				5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */,
+			);
+			path = external;
+			sourceTree = "<group>";
+		};
 		5F7514112DD970F9005BAFA7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -196,6 +207,7 @@
 		5FC346CC2DC0A55100572D7F = {
 			isa = PBXGroup;
 			children = (
+				5F4904CD2DFE4BE600D56F9D /* external */,
 				5FC346D72DC0A55100572D7F /* simulator-trainer */,
 				5F0DDBC82DD9468700F6A709 /* SimRuntimeHelper */,
 				5F19A8072DEF018600D52D33 /* hooks */,
@@ -293,7 +305,6 @@
 			);
 			name = "simulator-trainer";
 			packageProductDependencies = (
-				5FA72A522DE9E11C00B510F9 /* SwiftTerm */,
 			);
 			productName = "simulator-trainer";
 			productReference = 5FC346D52DC0A55100572D7F /* simulator-trainer.app */;
@@ -329,7 +340,6 @@
 			mainGroup = 5FC346CC2DC0A55100572D7F;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5FA72A512DE9E11C00B510F9 /* XCLocalSwiftPackageReference "../../../Downloads/SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5FC346D62DC0A55100572D7F /* Products */;
@@ -653,7 +663,12 @@
 				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
-				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/external",
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/external",
+				);
 				GCC_OPTIMIZATION_LEVEL = 1;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -708,7 +723,12 @@
 				DEVELOPMENT_TEAM = 44L979X757;
 				ENABLE_HARDENED_RUNTIME = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = NO;
-				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/external",
+					"$(PROJECT_DIR)",
+					"$(PROJECT_DIR)/external",
+				);
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "simulator-trainer/Info.plist";
@@ -786,20 +806,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCLocalSwiftPackageReference section */
-		5FA72A512DE9E11C00B510F9 /* XCLocalSwiftPackageReference "../../../Downloads/SwiftTerm" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../../Downloads/SwiftTerm;
-		};
-/* End XCLocalSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		5FA72A522DE9E11C00B510F9 /* SwiftTerm */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = SwiftTerm;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5FC346CD2DC0A55100572D7F /* Project object */;
 }

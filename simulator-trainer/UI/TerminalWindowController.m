@@ -6,7 +6,6 @@
 //
 
 #import "TerminalWindowController.h"
-@import SwiftTerm;
 
 @interface TerminalWindowController ()
 @property (nonatomic, strong) LocalProcessTerminalView *terminalView;
