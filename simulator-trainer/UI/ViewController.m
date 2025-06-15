@@ -106,11 +106,24 @@
     deviceListFullRefreshBlock();
 }
 
-- (void)setStatus:(NSString *)statusText {
+- (void)setStatusImageName:(NSImageName)imageName text:(NSString *)text {
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
-        weakSelf.tweakStatus.stringValue = statusText;
+        weakSelf.tweakStatus.stringValue = text;
+        weakSelf.statusImageView.image = [NSImage imageNamed:imageName];
     });
+}
+
+- (void)setStatus:(NSString *)statusText {
+    [self setStatusImageName:NSImageNameStatusNone text:statusText];
+}
+
+- (void)setPositiveStatus:(NSString *)statusText {
+    [self setStatusImageName:NSImageNameStatusAvailable text:statusText];
+}
+
+- (void)setNegativeStatus:(NSString *)statusText {
+    [self setStatusImageName:NSImageNameStatusUnavailable text:statusText];
 }
 
 - (void)_disableDeviceButtons {
@@ -300,7 +313,7 @@
 - (void)popupListDidSelectDevice:(NSPopUpButton *)sender {
     // The user selected a device from the popup list
     if (self->allSimDevices.count == 0) {
-        [self setStatus:@"Bad selection"];
+        [self setNegativeStatus:@"Bad selection"];
         NSLog(@"There are no devices but you selected a device ?? Sender: %@", sender);
         return;
     }
@@ -379,11 +392,11 @@
     [self->orchestrator removeJailbreakFromDevice:bootedSim completion:^(BOOL success, NSError * _Nullable error) {
         ON_MAIN_THREAD((^{
             if (error) {
-                [self setStatus:[NSString stringWithFormat:@"Failed to remove jailbreak: %@", error]];
+                [self setNegativeStatus:[NSString stringWithFormat:@"Failed to remove jailbreak: %@", error]];
                 self.removeJailbreakButton.enabled = YES;
             }
             else {
-                [self setStatus:@"Removed jailbreak"];
+                [self setPositiveStatus:@"Removed jailbreak"];
                 self.removeJailbreakButton.enabled = NO;
                 self.jailbreakButton.enabled = YES;
             }
@@ -409,7 +422,7 @@
 
 - (void)handleInstallTweakSelected:(id)sender {
     if (!selectedDevice || !selectedDevice.isBooted) {
-        [self setStatus:@"Nothing selected"];
+        [self setNegativeStatus:@"Nothing selected"];
         return;
     }
     
@@ -430,20 +443,20 @@
 
 - (void)handleOpenTweakFolderSelected:(id)sender {
     if (!selectedDevice || !selectedDevice.isBooted) {
-        [self setStatus:@"Nothing selected"];
+        [self setNegativeStatus:@"Nothing selected"];
         return;
     }
     
     BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
     if (!bootedSim.isJailbroken || !bootedSim.runtimeRoot) {
-        [self setStatus:@"Jailbreak not active"];
+        [self setNegativeStatus:@"Jailbreak not active"];
         return;
     }
     
     NSString *tweakFolder = @"/Library/MobileSubstrate/DynamicLibraries/";
     NSString *deviceTweakFolder = [bootedSim.runtimeRoot stringByAppendingPathComponent:tweakFolder];
     if (![[NSFileManager defaultManager] fileExistsAtPath:deviceTweakFolder]) {
-        [self setStatus:[NSString stringWithFormat:@"Tweak folder does not exist: %@", deviceTweakFolder]];
+        [self setNegativeStatus:[NSString stringWithFormat:@"Tweak folder does not exist: %@", deviceTweakFolder]];
         return;
     }
     
@@ -530,12 +543,12 @@
         if (error || !success) {
             weakSelf.jailbreakButton.enabled = YES;
             NSLog(@"Failed to jailbreak device with error: %@", error);
-            [self setStatus:@"Failed to jailbreak sim device"];
+            [self setNegativeStatus:@"Failed to jailbreak sim device"];
         }
         else if (success) {
             weakSelf.jailbreakButton.enabled = NO;
             weakSelf.removeJailbreakButton.enabled = YES;
-            [self setStatus:@"Sim device is jailbroken"];
+            [self setPositiveStatus:@"Sim device is jailbroken"];
             
             BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:simDevice];
             [bootedSim respring];
@@ -548,23 +561,31 @@
 #pragma mark - Tweak Installation
 - (void)processDebFileAtURL:(NSURL *)debURL {
     if (!selectedDevice || !selectedDevice.isBooted) {
-        [self setStatus:@"Please select a booted device first."];
+        [self setNegativeStatus:@"Select a device first"];
         return;
     }
     
     BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
     if (!bootedSim.isJailbroken) {
-        [self setStatus:@"Selected device is not jailbroken."];
+        [self setNegativeStatus:@"Selected device is not jailbroken"];
         return;
     }
 
     [self setStatus:[NSString stringWithFormat:@"Installing %@...", debURL.lastPathComponent]];
-    [self.packageService installDebFileAtPath:debURL.path toDevice:bootedSim completion:^(NSError * _Nullable error) {
+    [self.packageService installDebFileAtPath:debURL.path toDevice:bootedSim serviceConnection:self->helperConnection completion:^(NSError * _Nullable error) {
         if (error) {
             NSLog(@"Failed to install deb file: %@", error);
-            [self setStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
+            [self setNegativeStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
+            
+            ON_MAIN_THREAD(^{
+                [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0]];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:1.0]];
+                });
+            });
         }
         else {
+            
             ON_MAIN_THREAD(^{
                 [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:1.0]];
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -572,7 +593,7 @@
                 });
             });
             
-            [self setStatus:@"Installed"];
+            [self setPositiveStatus:@"Installed"];
             [self _updateSelectedDeviceUI];
         }
     }];
