@@ -177,7 +177,7 @@
 }
 
 - (void)respring {
-    [CommandRunner runCommand:@"killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
+    [CommandRunner runCommand:@"/usr/bin/killall" withArguments:@[@"-9", @"backboardd"] stdoutString:nil error:nil];
 }
 
 - (BOOL)isJailbroken {
