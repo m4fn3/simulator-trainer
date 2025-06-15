@@ -9,10 +9,69 @@
 #import "platform_changer.h"
 #import "AppBinaryPatcher.h"
 #import "CommandRunner.h"
+#import "tmpfs_overlay.h"
 
 @implementation PackageInstallationService
 
-- (void)installDebFileAtPath:(NSString *)debPath toDevice:(BootedSimulatorWrapper *)device completion:(void (^)(NSError * _Nullable error))completion {
+- (NSArray *)_minimalOverlayDirsForFilesToCopy:(NSDictionary<NSString *, NSString *> *)filesToCopy simRuntimeRoot:(NSString *)simRuntimeRoot {
+    NSMutableSet *parentDirs = [[NSMutableSet alloc] init];
+    for (NSString *destPath in filesToCopy.allValues) {
+        if (![destPath hasPrefix:simRuntimeRoot]) {
+            continue;
+        }
+
+        NSString *relativePath = [destPath substringFromIndex:simRuntimeRoot.length];
+        if ([relativePath hasPrefix:@"/"]) {
+            relativePath = [relativePath substringFromIndex:1];
+        }
+
+        NSString *parentDir = [relativePath stringByDeletingLastPathComponent];
+        if (parentDir.length == 0) {
+            continue;
+        }
+        
+        NSString *checkPath = [simRuntimeRoot stringByAppendingPathComponent:parentDir];
+        while (![ [NSFileManager defaultManager] fileExistsAtPath:checkPath isDirectory:NULL]) {
+            parentDir = [parentDir stringByDeletingLastPathComponent];
+            if (parentDir.length == 0) {
+                break;
+            }
+            
+            checkPath = [simRuntimeRoot stringByAppendingPathComponent:parentDir];
+        }
+        
+        if (parentDir.length == 0) {
+            continue;
+        }
+        
+        [parentDirs addObject:parentDir];
+    }
+
+    NSArray *sortedDirs = [[parentDirs allObjects] sortedArrayUsingSelector:@selector(compare:)];
+    NSMutableArray *minimalOverlays = [[NSMutableArray alloc] init];
+    for (NSString *dir in sortedDirs) {
+        BOOL covered = NO;
+        for (NSString *existing in minimalOverlays) {
+            if ([dir hasPrefix:existing] && (dir.length == existing.length || [dir characterAtIndex:existing.length] == '/')) {
+                covered = YES;
+                break;
+            }
+        }
+        
+        if (!covered) {
+            [minimalOverlays addObject:dir];
+        }
+    }
+
+    NSMutableArray *result = [[NSMutableArray alloc] init];
+    for (NSString *dir in minimalOverlays) {
+        [result addObject:[simRuntimeRoot stringByAppendingPathComponent:dir]];
+    }
+
+    return result;
+}
+
+- (void)installDebFileAtPath:(NSString *)debPath toDevice:(BootedSimulatorWrapper *)device serviceConnection:(HelperConnection *)connection completion:(void (^)(NSError * _Nullable error))completion {
     if (!debPath || !device) {
         if (completion) {
             completion([NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Invalid parameters: debPath or device is nil."}]);
@@ -99,6 +158,8 @@
         return;
     }
     
+    NSMutableDictionary *filesToCopy = [[NSMutableDictionary alloc] init];
+    
     NSDirectoryEnumerator *dirEnumerator = [[NSFileManager defaultManager] enumeratorAtPath:dataTarExtractDir];
     NSString *fileRelativeInDataTar;
     while ((fileRelativeInDataTar = [dirEnumerator nextObject])) {
@@ -110,45 +171,88 @@
             if ([cleanedRelativePath hasPrefix:@"./"]) {
                 cleanedRelativePath = [cleanedRelativePath substringFromIndex:2];
             }
+
+            filesToCopy[sourcePath] = [simRuntimeRoot stringByAppendingPathComponent:cleanedRelativePath];
+        }
+    }
+    
+    NSArray *expectedOverlayRoots = [self _minimalOverlayDirsForFilesToCopy:filesToCopy simRuntimeRoot:simRuntimeRoot];
+    NSMutableArray *directoriesToOverlay = [[NSMutableArray alloc] init];
+    for (NSString *overlayRoot in expectedOverlayRoots) {
+        if (!is_tmpfs_mount(overlayRoot.UTF8String)) {
+            [directoriesToOverlay addObject:overlayRoot];
+        }
+    }
+    
+    if (directoriesToOverlay.count > 0) {
+        __block BOOL mountSuccess = YES;
+        dispatch_semaphore_t sem = dispatch_semaphore_create(0);
+        [connection mountTmpfsOverlaysAtPaths:directoriesToOverlay completion:^(NSError * _Nullable error) {
             
-            NSString *destinationPath = [simRuntimeRoot stringByAppendingPathComponent:cleanedRelativePath];
-            NSString *destinationParentDir = [destinationPath stringByDeletingLastPathComponent];
-            
-            if (![[NSFileManager defaultManager] fileExistsAtPath:destinationParentDir]) {
-                if (![[NSFileManager defaultManager] createDirectoryAtPath:destinationParentDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
-                    cleanupBlock();
-                    if (completion) {
-                        completion(operationError);
-                    }
-                    
-                    return;
-                }
+            if (error) {
+                NSLog(@"Failed to mount tmpfs overlays: %@", error);
+                mountSuccess = NO;
             }
             
-            if ([[NSFileManager defaultManager] fileExistsAtPath:destinationPath]) {
-                [[NSFileManager defaultManager] removeItemAtPath:destinationPath error:NULL];
+            dispatch_semaphore_signal(sem);
+        }];
+        
+        if (dispatch_semaphore_wait(sem, dispatch_time(DISPATCH_TIME_NOW, (int64_t)(30 * NSEC_PER_SEC))) != 0) {
+            NSLog(@"Timeout waiting for tmpfs overlays to mount");
+            mountSuccess = NO;
+        }
+        
+        if (!mountSuccess) {
+            cleanupBlock();
+            if (completion) {
+                completion([NSError errorWithDomain:NSCocoaErrorDomain code:102 userInfo:@{NSLocalizedDescriptionKey: @"Failed to overlay read-only dirs that the deb package needs"}]);
             }
             
-            if (![[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:destinationPath error:&operationError]) {
-                NSLog(@"  copy error: %@", operationError);
+            return;
+        }
+        
+        NSLog(@"Tmpfs overlays mounted successfully");
+    }
+                
+    
+    for (NSString *sourcePath in filesToCopy) {
+        NSString *destinationPath = filesToCopy[sourcePath];
+        NSString *destinationParentDir = [destinationPath stringByDeletingLastPathComponent];
+                
+        if (![[NSFileManager defaultManager] fileExistsAtPath:destinationParentDir]) {
+            if (![[NSFileManager defaultManager] createDirectoryAtPath:destinationParentDir withIntermediateDirectories:YES attributes:nil error:&operationError]) {
                 cleanupBlock();
                 if (completion) {
                     completion(operationError);
                 }
+                
                 return;
             }
-            
-            if ([destinationPath.pathExtension isEqualToString:@"dylib"] && ![AppBinaryPatcher isBinaryArm64SimulatorCompatible:destinationPath]) {
-                // Convert to simulator platform and then codesign
-                [AppBinaryPatcher thinBinaryAtPath:destinationPath];
-                convertPlatformToSimulator(destinationPath.UTF8String);
-                
-                [AppBinaryPatcher codesignItemAtPath:destinationPath completion:^(BOOL success, NSError *error) {
-                    if (!success) {
-                        NSLog(@"Failed to codesign item at path: %@", error);
-                    }
-                }];
+        }
+        
+        if ([[NSFileManager defaultManager] fileExistsAtPath:destinationPath]) {
+            [[NSFileManager defaultManager] removeItemAtPath:destinationPath error:NULL];
+        }
+        
+        if (![[NSFileManager defaultManager] copyItemAtPath:sourcePath toPath:destinationPath error:&operationError]) {
+            NSLog(@"  copy error: %@", operationError);
+            cleanupBlock();
+            if (completion) {
+                completion(operationError);
             }
+            return;
+        }
+        
+        if ([destinationPath.pathExtension isEqualToString:@"dylib"] && ![AppBinaryPatcher isBinaryArm64SimulatorCompatible:destinationPath]) {
+            // Convert to simulator platform and then codesign
+            [AppBinaryPatcher thinBinaryAtPath:destinationPath];
+            convertPlatformToSimulator(destinationPath.UTF8String);
+            
+            [AppBinaryPatcher codesignItemAtPath:destinationPath completion:^(BOOL success, NSError *error) {
+                if (!success) {
+                    NSLog(@"Failed to codesign item at path: %@", error);
+                }
+            }];
         }
     }
 
