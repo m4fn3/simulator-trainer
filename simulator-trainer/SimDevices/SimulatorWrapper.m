@@ -23,9 +23,6 @@
     
     if ((self = [super init])) {
         self.coreSimDevice = coreSimDevice;
-        
-        NSString *state = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString"));
-        self.isBooted = [state isEqualToString:@"Booted"];
     }
     
     return self;
@@ -37,6 +34,21 @@
 
 - (NSString *)debugDescription {
     return [NSString stringWithFormat:@"<%@ %p booted:%d, %@>", NSStringFromClass(self.class), self, self.isBooted, self.coreSimDevice];
+}
+
+- (BOOL)isBooted {
+    if (!self.coreSimDevice) {
+        NSLog(@"-isBooted: Requesting boot state but coreSimDevice not found for device: %@", self);
+        return NO;
+    }
+    
+    NSString *state = ((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString"));
+    if (!state) {
+        NSLog(@"-isBooted: Failed to get state for device: %@", self);
+        return NO;
+    }
+
+    return [state isEqualToString:@"Booted"];
 }
 
 - (NSString *)displayString {
@@ -103,8 +115,6 @@
         NSLog(@"Failed to reload device state for device: %@", self);
         return;
     }
-
-    self.isBooted = [((id (*)(id, SEL))objc_msgSend)(self.coreSimDevice, NSSelectorFromString(@"stateString")) isEqualToString:@"Booted"];
 }
 
 - (void)bootWithCompletion:(void (^ _Nullable)(NSError * _Nullable error))completion {

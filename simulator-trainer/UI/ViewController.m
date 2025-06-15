@@ -163,31 +163,34 @@
         }
         
         // Otherwise, add each discovered device to the popup list
+        NSInteger bootedDeviceIndex = -1;
         for (int i = 0; i < deviceList.count; i++) {
             SimulatorWrapper *device = deviceList[i];
             // displayString: "(Booted) iPhone 14 Pro (iOS 17.0) [A1B2C3D4-5678-90AB-CDEF-1234567890AB]"
             [weakSelf.devicePopup addItemWithTitle:[device displayString]];
+            if (device.isBooted) {
+                [weakSelf.devicePopup itemAtIndex:i].image = [NSImage imageNamed:NSImageNameStatusAvailable];
+                bootedDeviceIndex = i;
+            }
         }
         
-        // If a device has already been selected from the popup list, and
-        // that device is still available in the popup list after rebuilding it, then
-        // reselect that device
-        if (self->selectedDevice && (self->selectedDeviceIndex >= 0 && self->selectedDeviceIndex < weakSelf.devicePopup.numberOfItems)) {
-            NSMenuItem *selectedItem = [weakSelf.devicePopup itemAtIndex:self->selectedDeviceIndex];
-            
-            // Sanity check its the right device
-            if ([selectedItem.title isEqualToString:[self->selectedDevice displayString]]) {
-                [weakSelf.devicePopup selectItem:selectedItem];
-            }
-            else {
-                NSLog(@"Selected device not found in list!");
-                [weakSelf.devicePopup selectItemAtIndex:0];
-            }
+        if (bootedDeviceIndex >= 0) {
+            // If a booted device was found, select it
+            [weakSelf.devicePopup selectItemAtIndex:bootedDeviceIndex];
+            self->selectedDevice = deviceList[bootedDeviceIndex];
+            self->selectedDeviceIndex = bootedDeviceIndex;
+        }
+        else if (self->selectedDeviceIndex >= 0 && self->selectedDeviceIndex < weakSelf.devicePopup.numberOfItems) {
+            // If a previously-selected device is still available, reselect it
+            [weakSelf.devicePopup selectItemAtIndex:self->selectedDeviceIndex];
         }
         else {
+            // No booted devices found, select the first one
             [weakSelf.devicePopup selectItemAtIndex:0];
         }
-        
+
+        [self _updateSelectedDeviceUI];
+
         [weakSelf.devicePopup setEnabled:YES];
     });
 }
@@ -218,7 +221,7 @@
 - (void)_autoselectDevice {
     __weak typeof(self) weakSelf = self;
     ON_MAIN_THREAD(^{
-        NSInteger selectedDeviceIndex = 0;
+        NSInteger selectedDeviceIndex = -1;
         // Default selection goes to the first-encountered jailbroken booted device, falling
         // back to the last-encountered booted device, falling back to the first-encountered
         // iOS-platform device, with the last resort being to just select the first device
@@ -231,7 +234,7 @@
             else if (device.isBooted) {
                 selectedDeviceIndex = i;
             }
-            else if (!selectedDeviceIndex && [device.platform isEqualToString:@"iOS"]) {
+            else if (selectedDeviceIndex == -1 && [device.platform isEqualToString:@"iOS"]) {
                 selectedDeviceIndex = i;
             }
         }
@@ -451,8 +454,20 @@
 
 - (void)deviceDidBoot:(SimulatorWrapper *)simDevice {
     NSLog(@"Device did boot: %@", simDevice);
+    // Switch to this device if one has not already been selected, otherwiss do nothing
+    if (self->selectedDevice && self->selectedDevice != simDevice) {
+        return;
+    }
+    
     self->selectedDevice = simDevice;
     self->selectedDevice.delegate = self;
+    
+    NSInteger bootedDeviceIndex = [self->allSimDevices indexOfObject:simDevice];
+    if (bootedDeviceIndex != NSNotFound) {
+        NSLog(@"selecting booted device at index: %ld, %@", (long)bootedDeviceIndex, self->selectedDevice);
+        [self.devicePopup selectItemAtIndex:bootedDeviceIndex];
+        self->selectedDeviceIndex = bootedDeviceIndex;
+    }
     
     [self _updateSelectedDeviceUI];
     [self _updateDeviceMenuItemLabels];

@@ -25,11 +25,11 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SimulatorWrapper : NSObject
 
 @property (nonatomic, weak) id<SimulatorWrapperDelegate> delegate;
-@property (nonatomic) BOOL isBooted;
 @property (nonatomic, strong) id coreSimDevice;
 
 - (instancetype)initWithCoreSimDevice:(id)coreSimDevice;
 
+- (BOOL)isBooted;
 - (NSString * _Nonnull)displayString;
 - (NSString * _Nullable)udidString;
 - (NSString * _Nullable)runtimeRoot;
