@@ -36,6 +36,15 @@
     return [NSString stringWithFormat:@"<%@ %p booted:%d, %@>", NSStringFromClass(self.class), self, self.isBooted, self.coreSimDevice];
 }
 
+- (BOOL)isEqual:(id)object {
+    if (![object isKindOfClass:[SimulatorWrapper class]]) {
+        return NO;
+    }
+    
+    SimulatorWrapper *other = (SimulatorWrapper *)object;
+    return [self.udidString isEqualToString:other.udidString];
+}
+
 - (BOOL)isBooted {
     if (!self.coreSimDevice) {
         NSLog(@"-isBooted: Requesting boot state but coreSimDevice not found for device: %@", self);

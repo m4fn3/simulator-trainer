@@ -184,17 +184,9 @@
 }
 
 - (void)removeJailbreakFromDevice:(nonnull BootedSimulatorWrapper *)device completion:(nonnull void (^)(BOOL, NSError * _Nullable __strong))completion {
-    if (!device || !device.isBooted) {
+    if (!device || !device.isJailbroken) {
         if (completion) {
-            completion(NO, [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device cannot be nil or off"}]);
-        }
-        
-        return;
-    }
-    
-    if (![device isJailbroken]) {
-        if (completion) {
-            completion(NO, [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device is not jailbroken"}]);
+            completion(NO, [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Device cannot be nil or unjailbroken"}]);
         }
         
         return;
@@ -204,6 +196,11 @@
         if (unmountError) {
             NSLog(@"Failed to unmount mount points: %@", unmountError);
             // Don't fail
+        }
+        
+        if (!device.isBooted) {
+            completion(YES, nil);
+            return;
         }
         
         [self shutdownDevice:device completion:^(NSError * _Nullable shutdownError) {
@@ -216,20 +213,21 @@
             }
             
             [self bootDevice:device completion:^(BootedSimulatorWrapper * _Nullable bootedDevice, NSError * _Nullable bootError) {
+                [bootedDevice reloadDeviceState];
+
                 if (bootError) {
                     if (completion) {
                         completion(NO, [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Failed to boot device after jailbreak removal: %@", bootError]}]);
                     }
                 }
                 else {
-                    [bootedDevice reloadDeviceState];
-                    BOOL isJailbroken = [bootedDevice isJailbroken];
-                    completion(isJailbroken, (isJailbroken ? [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey:@"Device still reports as jailbroken after removal"}] : nil));
-                    if ([bootedDevice isJailbroken]) {
-                        if (completion) {
-                            completion(NO, [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey:@"Device still reports as jailbroken after removal"}]);
-                        }
+                    BOOL success = bootedDevice.isJailbroken == NO;
+                    NSError *isJailbrokenError = nil;
+                    if (!success) {
+                        isJailbrokenError = [NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey:@"Device still reports as jailbroken after removal"}];
                     }
+                    
+                    completion(success, isJailbrokenError);
                 }
             }];
         }];

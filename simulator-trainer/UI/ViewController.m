@@ -143,8 +143,32 @@
 - (void)refreshDeviceList {
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
         // Reload the list of devices
-        BOOL isFirstFetch = (self->allSimDevices == nil);
+        NSArray *oldDeviceList = self->allSimDevices;
+        BOOL isFirstFetch = (oldDeviceList == nil);
         self->allSimDevices = [SimDeviceManager buildDeviceList];
+        
+        // After reloading, check if any devices have been removed.
+        // If a jailbroken sim is no longer around, its jailbreak (tmpfs mounts) need to be removed
+        for (SimulatorWrapper *oldDevice in oldDeviceList) {
+            BOOL stillExists = [self->allSimDevices containsObject:oldDevice];
+            if (!stillExists) {
+                oldDevice.delegate = nil;
+            }
+            
+            BOOL isJailbroken = ([oldDevice isKindOfClass:[BootedSimulatorWrapper class]] && [(BootedSimulatorWrapper *)oldDevice isJailbroken]);
+            BOOL needsJbRemoval = isJailbroken && (!stillExists || !oldDevice.isBooted);
+            if (needsJbRemoval) {
+                BootedSimulatorWrapper *noLongerBootedSim = (BootedSimulatorWrapper *)oldDevice;
+                [self->orchestrator removeJailbreakFromDevice:noLongerBootedSim completion:^(BOOL success, NSError * _Nullable error) {
+                    if (error) {
+                        NSLog(@"Failed to remove jailbreak from shutdown device %@: %@", noLongerBootedSim, error);
+                        ON_MAIN_THREAD((^{
+                            [self setNegativeStatus:[NSString stringWithFormat:@"Failed to remove jailbreak: %@", error]];
+                        }));
+                    }
+                }];
+            }
+        }
         
         ON_MAIN_THREAD(^{
             // Update the device list UI whenever the list changes
