@@ -9,7 +9,6 @@
 #import <objc/message.h>
 #import <Cocoa/Cocoa.h>
 #import <dlfcn.h>
-#import "TerminalWindowController.h"
 #import "BootedSimulatorWrapper.h"
 #import "InProcessSimulator.h"
 #import "AppBinaryPatcher.h"
@@ -17,6 +16,7 @@
 #import "CycriptLauncher.h"
 #import "CommandRunner.h"
 #import "SimLogging.h"
+#import "ObjseeTraceLauncher.h"
 
 @interface InProcessSimulator ()
 @property (nonatomic, strong) BootedSimulatorWrapper *focusedSimulatorDevice;
@@ -304,32 +304,44 @@
 - (void)handleObjcMsgSendTrace:(id)sender {
     NSAlert *alert = [[NSAlert alloc] init];
     [alert setMessageText:@"objc_msgSend Trace"];
-    [alert setInformativeText:@"Enter pattern and process name to trace"];
+    [alert setInformativeText:@"Specify class/method pattern and process to trace"];
     [alert addButtonWithTitle:@"Start Trace"];
     [alert addButtonWithTitle:@"Cancel"];
 
-    NSTextField *patternField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
-    [patternField setPlaceholderString:@"trace pattern"];
+    NSTextField *classPatternField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [classPatternField setPlaceholderString:@"class (default: *)"];
 
-    NSTextField *processField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
-    [processField setPlaceholderString:@"process to trace"];
+    NSTextField *methodPatternField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [methodPatternField setPlaceholderString:@"method (default: *)"];
+    
+    NSTextField *bundleIdField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [bundleIdField setPlaceholderString:@"bundle ID"];
 
-    NSStackView *inputStack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 250, 60)];
+    NSStackView *inputStack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 250, 30 * 3)];
     [inputStack setOrientation:NSUserInterfaceLayoutOrientationVertical];
     [inputStack setSpacing:8];
-    [inputStack addView:patternField inGravity:NSStackViewGravityTop];
-    [inputStack addView:processField inGravity:NSStackViewGravityTop];
+    [inputStack addView:classPatternField inGravity:NSStackViewGravityTop];
+    [inputStack addView:bundleIdField inGravity:NSStackViewGravityTop];
+    [inputStack addView:methodPatternField inGravity:NSStackViewGravityTop];
 
     [alert setAccessoryView:inputStack];
 
-    NSWindow *mainWindow = [NSApp mainWindow];
-    [alert beginSheetModalForWindow:mainWindow completionHandler:^(NSModalResponse returnCode) {
+    [alert beginSheetModalForWindow:[NSApp mainWindow] completionHandler:^(NSModalResponse returnCode) {
         if (returnCode == NSAlertFirstButtonReturn) {
-            NSString *pattern = [patternField stringValue];
-            NSString *process = [processField stringValue];
+            NSString *classPattern = [classPatternField stringValue];
+            NSString *methodPattern = [methodPatternField stringValue];
             
-            NSLog(@"Starting trace with pattern: %@ in process: %@", pattern, process);
-            [self traceLaunchBundleId:process withTracePattern:pattern];
+            ObjseeTraceRequest *request = [[ObjseeTraceRequest alloc] init];
+            if (classPattern && classPattern.length > 0) {
+                request.classPatterns = @[classPattern];
+            }
+            if (methodPattern && methodPattern.length > 0) {
+                request.methodPatterns = @[methodPattern];
+            }
+            
+            request.targetBundleId = [bundleIdField stringValue];
+            request.targetDeviceId = self.focusedSimulatorDevice.udidString;
+            [[ObjseeTraceLauncher sharedInstance] startTracingWithRequest:request];
         }
     }];
 }
@@ -337,39 +349,6 @@
 - (void)focusSimulatorDevice:(BootedSimulatorWrapper *)device {
     NSLog(@"InProcessSimulator: focusing on device %@", device);
     self.focusedSimulatorDevice = device;
-}
-
-- (void)traceLaunchBundleId:(NSString *)bundleId withTracePattern:(NSString *)pattern {
-    if (!self.focusedSimulatorDevice) {
-        NSLog(@"No focused simulator to launch trace on");
-        return;
-    }
-    
-    NSString *libobjseeAssetPath = [[NSBundle bundleForClass:[self class]] pathForResource:@"libobjsee" ofType:@"dylib"];
-    NSString *libObjseeTmpPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"libobjsee.dylib"];
-    if ([[NSFileManager defaultManager] fileExistsAtPath:libObjseeTmpPath]) {
-        NSError *error = nil;
-        [[NSFileManager defaultManager] removeItemAtPath:libObjseeTmpPath error:&error];
-        if (error) {
-            NSLog(@"Failed to remove old libobjsee: %@", error);
-            return;
-        }
-    }
-    [[NSFileManager defaultManager] copyItemAtPath:libobjseeAssetPath toPath:libObjseeTmpPath error:nil];
-    
-    [AppBinaryPatcher codesignItemAtPath:libObjseeTmpPath completion:^(BOOL success, NSError * _Nullable error) {
-        if (error) {
-            NSLog(@"Failed to codesign libobjsee: %@", error);
-            return;
-        }
-
-        NSArray *xcrunArgs = @[@"simctl", @"launch", @"--console", @"--terminate-running-process", self.focusedSimulatorDevice.udidString, bundleId];
-        NSArray *envs = @[
-            [NSString stringWithFormat:@"SIMCTL_CHILD_DYLD_INSERT_LIBRARIES=%@", libObjseeTmpPath],
-        ];
-    
-        [TerminalWindowController presentTerminalWithExecutable:@"/usr/bin/xcrun" args:xcrunArgs env:envs title:[NSString stringWithFormat:@"Tracing %@", bundleId]];
-    }];
 }
 
 - (void)setSimulatorBorderColor:(NSColor *)color {

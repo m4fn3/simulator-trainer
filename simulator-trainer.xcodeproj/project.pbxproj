@@ -11,6 +11,7 @@
 		5F19A80D2DEF018600D52D33 /* hooks.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5F19A8062DEF018500D52D33 /* hooks.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		5F4904CF2DFE4BEB00D56F9D /* SwiftTerm.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */; };
 		5F4904D02DFE4BEB00D56F9D /* SwiftTerm.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		5F4908A02E07E5BE00D56F9D /* libobjsee-static.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F49089F2E07E5BE00D56F9D /* libobjsee-static.a */; };
 		5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */; };
 		5F75141A2DD97D46005BAFA7 /* com.objc.simulator-trainer.SimRuntimeHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -70,6 +71,8 @@
 		5F0DDBC72DD9468700F6A709 /* com.objc.simulator-trainer.SimRuntimeHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "com.objc.simulator-trainer.SimRuntimeHelper"; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F19A8062DEF018500D52D33 /* hooks.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = hooks.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftTerm.framework; sourceTree = "<group>"; };
+		5F49089E2E07E5A300D56F9D /* libobjsee-static.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libobjsee-static.a"; path = "external/libobjsee-static.a"; sourceTree = "<group>"; };
+		5F49089F2E07E5BE00D56F9D /* libobjsee-static.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = "libobjsee-static.a"; sourceTree = "<group>"; };
 		5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		5FC346D52DC0A55100572D7F /* simulator-trainer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "simulator-trainer.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -179,6 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5F19A80C2DEF018600D52D33 /* hooks.framework in Frameworks */,
+				5F4908A02E07E5BE00D56F9D /* libobjsee-static.a in Frameworks */,
 				5F7514132DD970FA005BAFA7 /* ServiceManagement.framework in Frameworks */,
 				5F4904CF2DFE4BEB00D56F9D /* SwiftTerm.framework in Frameworks */,
 			);
@@ -191,6 +195,7 @@
 			isa = PBXGroup;
 			children = (
 				5F4904CC2DFE4BE600D56F9D /* SwiftTerm.framework */,
+				5F49089F2E07E5BE00D56F9D /* libobjsee-static.a */,
 			);
 			path = external;
 			sourceTree = "<group>";
@@ -198,6 +203,7 @@
 		5F7514112DD970F9005BAFA7 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				5F49089E2E07E5A300D56F9D /* libobjsee-static.a */,
 				5F7514122DD970FA005BAFA7 /* ServiceManagement.framework */,
 			);
 			name = Frameworks;
@@ -699,6 +705,7 @@
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/external",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
@@ -760,6 +767,7 @@
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/external",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";

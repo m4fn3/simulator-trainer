@@ -14,7 +14,6 @@
 
 + (instancetype)sharedSetupIfNeeded;
 
-- (void)traceLaunchBundleId:(NSString *)bundleId withTracePattern:(NSString *)pattern;
 - (void)focusSimulatorDevice:(BootedSimulatorWrapper *)device;
 - (void)setSimulatorBorderColor:(NSColor *)color;
 
