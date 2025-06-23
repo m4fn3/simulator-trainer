@@ -110,17 +110,15 @@ extern tracer_result_t encode_tracer_config(tracer_config_t *config, char **out_
 
 @implementation ObjseeTraceLauncher
 
-+ (instancetype)sharedInstance {
-    static ObjseeTraceLauncher *sharedInstance = nil;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        sharedInstance = [[self alloc] init];
-    });
-
-    return sharedInstance;
+- (id)initWithTraceRequest:(ObjseeTraceRequest *)request {
+    if ((self = [super init])) {
+        self.traceRequest = request;
+    }
+    
+    return self;
 }
 
-- (void)startTracingWithRequest:(ObjseeTraceRequest *)request {
+- (void)launch {
     
     tracer_config_t config = {
         .transport = TRACER_TRANSPORT_STDOUT,
@@ -143,7 +141,7 @@ extern tracer_result_t encode_tracer_config(tracer_config_t *config, char **out_
         .args = TRACER_ARG_FORMAT_DESCRIPTIVE,
     };
     
-    for (NSString *classPattern in request.classPatterns) {
+    for (NSString *classPattern in self.traceRequest.classPatterns) {
         tracer_filter_t filter = {
             .class_pattern = [classPattern UTF8String],
             .method_pattern = "*",
@@ -155,7 +153,7 @@ extern tracer_result_t encode_tracer_config(tracer_config_t *config, char **out_
         config.filters[config.filter_count++] = filter;
     }
     
-    for (NSString *methodPattern in request.methodPatterns) {
+    for (NSString *methodPattern in self.traceRequest.methodPatterns) {
         tracer_filter_t filter = {
             .class_pattern = "*",
             .method_pattern = [methodPattern UTF8String],
@@ -193,13 +191,13 @@ extern tracer_result_t encode_tracer_config(tracer_config_t *config, char **out_
             return;
         }
 
-        NSArray *xcrunArgs = @[@"simctl", @"launch", @"--console", @"--terminate-running-process", request.targetDeviceId, request.targetBundleId];
+        NSArray *xcrunArgs = @[@"simctl", @"launch", @"--console", @"--terminate-running-process", self.traceRequest.targetDeviceId, self.traceRequest.targetBundleId];
         NSArray *envs = @[
             [NSString stringWithFormat:@"SIMCTL_CHILD_DYLD_INSERT_LIBRARIES=%@", libObjseeTmpPath],
             [NSString stringWithFormat:@"SIMCTL_CHILD_OBJSEE_CONFIG=%@", encodedConfigString],
         ];
         
-        [TerminalWindowController presentTerminalWithExecutable:@"/usr/bin/xcrun" args:xcrunArgs env:envs title:[NSString stringWithFormat:@"Tracing %@", request.targetBundleId]];
+        [TerminalWindowController presentTerminalWithExecutable:@"/usr/bin/xcrun" args:xcrunArgs env:envs title:[NSString stringWithFormat:@"Tracing %@", self.traceRequest.targetBundleId]];
     }];
 }
 

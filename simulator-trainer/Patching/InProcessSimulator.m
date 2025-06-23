@@ -298,7 +298,38 @@
 }
     
 - (void)handleOpenCycript:(id)sender {
-    [CycriptLauncher beginSessionForProcessNamed:@"SpringBoard"];
+    NSAlert *alert = [[NSAlert alloc] init];
+    [alert setMessageText:@"Cycript"];
+    [alert setInformativeText:@"Specify bundle ID to launch with Cycript"];
+    [alert addButtonWithTitle:@"Start"];
+    [alert addButtonWithTitle:@"Cancel"];
+    
+    NSTextField *bundleIdField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [bundleIdField setPlaceholderString:@"bundle ID"];
+    
+    NSTextField *processNameField = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 250, 24)];
+    [processNameField setPlaceholderString:@"process name"];
+
+    NSStackView *inputStack = [[NSStackView alloc] initWithFrame:NSMakeRect(0, 0, 250, 30 * 2)];
+    [inputStack setOrientation:NSUserInterfaceLayoutOrientationVertical];
+    [inputStack setSpacing:8];
+    [inputStack addView:bundleIdField inGravity:NSStackViewGravityTop];
+    [inputStack addView:processNameField inGravity:NSStackViewGravityTop];
+
+    [alert setAccessoryView:inputStack];
+
+    [alert beginSheetModalForWindow:[NSApp mainWindow] completionHandler:^(NSModalResponse returnCode) {
+        if (returnCode == NSAlertFirstButtonReturn) {
+            
+            CycriptLaunchRequest *request = [[CycriptLaunchRequest alloc] init];
+            request.targetBundleId = [bundleIdField stringValue];
+            request.processName = [processNameField stringValue];
+            request.targetDeviceId = self.focusedSimulatorDevice.udidString;
+            
+            CycriptLauncher *launcher = [[CycriptLauncher alloc] initWithRequest:request];
+            [launcher launch];
+        }
+    }];
 }
 
 - (void)handleObjcMsgSendTrace:(id)sender {
@@ -321,8 +352,8 @@
     [inputStack setOrientation:NSUserInterfaceLayoutOrientationVertical];
     [inputStack setSpacing:8];
     [inputStack addView:classPatternField inGravity:NSStackViewGravityTop];
-    [inputStack addView:bundleIdField inGravity:NSStackViewGravityTop];
     [inputStack addView:methodPatternField inGravity:NSStackViewGravityTop];
+    [inputStack addView:bundleIdField inGravity:NSStackViewGravityTop];
 
     [alert setAccessoryView:inputStack];
 
@@ -341,7 +372,9 @@
             
             request.targetBundleId = [bundleIdField stringValue];
             request.targetDeviceId = self.focusedSimulatorDevice.udidString;
-            [[ObjseeTraceLauncher sharedInstance] startTracingWithRequest:request];
+            
+            ObjseeTraceLauncher *traceLauncher = [[ObjseeTraceLauncher alloc] initWithTraceRequest:request];
+            [traceLauncher launch];
         }
     }];
 }

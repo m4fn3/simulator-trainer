@@ -19,9 +19,11 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ObjseeTraceLauncher : NSObject
 
-+ (instancetype)sharedInstance;
+@property (nonatomic, strong) ObjseeTraceRequest *traceRequest;
 
-- (void)startTracingWithRequest:(ObjseeTraceRequest *)request;
+- (id)initWithTraceRequest:(ObjseeTraceRequest *)request;
+
+- (void)launch;
 
 @end
 

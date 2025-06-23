@@ -9,9 +9,19 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface CycriptLauncher : NSObject
+@interface CycriptLaunchRequest : NSObject
+@property (nonatomic, strong) NSString *targetDeviceId;
+@property (nonatomic, strong) NSString *targetBundleId;
+@property (nonatomic, strong) NSString *processName;
+@property (nonatomic) NSInteger serverPort;
+@end
 
-+ (BOOL)beginSessionForProcessNamed:(NSString *)processName;
+@interface CycriptLauncher : NSObject
+@property (nonatomic, strong) CycriptLaunchRequest *request;
+
+- (id)initWithRequest:(CycriptLaunchRequest *)request;
+
+- (BOOL)launch;
 
 @end
 

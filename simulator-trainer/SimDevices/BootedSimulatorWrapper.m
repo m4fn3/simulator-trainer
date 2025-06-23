@@ -54,8 +54,8 @@
         @"CydiaSubstrate": @"/Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate",
         @"libhooker.dylib": @"/usr/lib/libhooker.dylib",
         @"loader.dylib": @"/usr/lib/loader.dylib",
-        @"cycript_server.dylib": @"/Library/MobileSubstrate/DynamicLibraries/cyript_server.dylib",
-        @"cycript_server.plist": @"/Library/MobileSubstrate/DynamicLibraries/cyript_server.plist",
+        @"cycript_server.dylib": @"/Library/MobileSubstrate/DynamicLibraries/cycript_server.dylib",
+        @"cycript_server.plist": @"/Library/MobileSubstrate/DynamicLibraries/cycript_server.plist",
         @"libcycript.dylib": @"/usr/lib/libcycript.dylib",
         @"libcycript.db": @"/usr/lib/libcycript.db",
     };

@@ -14,6 +14,10 @@
 }
 
 + (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments cwd:(NSString * _Nullable)cwdPath environment:(NSDictionary * _Nullable)environment stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut {
+    return [self runCommand:command withArguments:arguments cwd:cwdPath environment:environment stdoutString:stdoutString error:errorOut waitUntilExit:YES];
+}
+
++ (BOOL)runCommand:(NSString *)command withArguments:(NSArray<NSString *> *)arguments cwd:(NSString * _Nullable)cwdPath environment:(NSDictionary * _Nullable)environment stdoutString:(NSString * _Nullable *)stdoutString error:(NSError ** _Nullable)errorOut waitUntilExit:(BOOL)waitUntilExit {
     if (!command) {
         NSLog(@"No command provided to runCommand. Command %@, Arguments %@", command, arguments);
         if (errorOut) {
@@ -49,6 +53,9 @@
     }
 
     [task launch];
+    if (!waitUntilExit) {
+        return YES;
+    }
     [task waitUntilExit];
     
     NSString *stdErrString = [CommandRunner _readStringFromPipe:errorPipe withTimeout:5.0];
