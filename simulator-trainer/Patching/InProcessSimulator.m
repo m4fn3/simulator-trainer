@@ -227,7 +227,7 @@
         
         NSPasteboard *pasteboard = [sender draggingPasteboard];
         NSString *draggedType = [[pasteboard types] firstObject];
-        if (!draggedType || ![draggedType isEqualToString:NSPasteboardTypeFileURL]) {
+        if (!draggedType) {
             return NO;
         }
         
@@ -239,6 +239,14 @@
         NSString *realPath = [[files firstObject] URLByResolvingSymlinksInPath].path;
         if ([[realPath pathExtension] isEqualToString:@"deb"]) {
             [[NSNotificationCenter defaultCenter] postNotificationName:@"InstallTweakNotification" object:realPath];
+            return YES;
+        }
+        else if ([[realPath pathExtension] isEqualToString:@"ipa"]) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"InstallIpaNotification" object:realPath];
+            return YES;
+        }
+        else if ([[realPath pathExtension] isEqualToString:@"app"]) {
+            [[NSNotificationCenter defaultCenter] postNotificationName:@"InstallAppNotification" object:realPath];
             return YES;
         }
         

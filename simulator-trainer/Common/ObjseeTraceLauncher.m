@@ -144,7 +144,7 @@ extern tracer_result_t encode_tracer_config(tracer_config_t *config, char **out_
     for (NSString *classPattern in self.traceRequest.classPatterns) {
         tracer_filter_t filter = {
             .class_pattern = [classPattern UTF8String],
-            .method_pattern = "*",
+            .method_pattern = NULL,
             .image_pattern = NULL,
             .exclude = false,
             .custom_filter = NULL,

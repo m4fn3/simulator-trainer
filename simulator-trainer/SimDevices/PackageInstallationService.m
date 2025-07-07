@@ -10,6 +10,8 @@
 #import "AppBinaryPatcher.h"
 #import "CommandRunner.h"
 #import "tmpfs_overlay.h"
+#import <objc/runtime.h>
+#import <objc/message.h>
 
 @implementation PackageInstallationService
 
@@ -260,6 +262,35 @@
 
     [device respring];
 
+    if (completion) {
+        completion(nil);
+    }
+}
+
+- (void)installAppBundleAtPath:(NSString *)appPath toDevice:(BootedSimulatorWrapper *)device completion:(void (^)(NSError * _Nullable error))completion {
+    NSString *tempAppPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[appPath lastPathComponent]];
+    if (![[NSFileManager defaultManager] copyItemAtPath:appPath toPath:tempAppPath error:nil]) {
+        NSLog(@"Failed to copy app bundle to temporary location");
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to copy app bundle"}]);
+        }
+        return;
+    }
+    
+    convertPlatformToSimulator(tempAppPath.UTF8String);
+    
+    NSError *error = nil;
+    NSURL *tmpAppUrl = [NSURL fileURLWithPath:tempAppPath];
+    SEL _sel = sel_registerName("installApplication:withOptions:error:");
+    ((void (*)(id, SEL, NSURL *, NSDictionary *, NSError **))objc_msgSend)(device.coreSimDevice, _sel, tmpAppUrl, nil, &error);
+    if (error) {
+        NSLog(@"Failed to install app bundle: %@", error);
+        if (completion) {
+            completion(error);
+        }
+        return;
+    }
+    
     if (completion) {
         completion(nil);
     }

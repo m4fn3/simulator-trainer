@@ -93,6 +93,15 @@
         [self processDebFileAtURL:[NSURL fileURLWithPath:debPath]];
     }];
     
+    [NSNotificationCenter.defaultCenter addObserverForName:@"InstallAppNotification" object:nil queue:nil usingBlock:^(NSNotification * _Nonnull notification) {
+        NSString *filePath = notification.object;
+        if (!filePath || filePath.length == 0) {
+            return;
+        }
+        
+        [self installAppBundleAtURL:[NSURL fileURLWithPath:filePath]];
+    }];
+    
     void (^deviceListFullRefreshBlock)(void) = ^(void) {
         [self _populateDevicePopup];
         [self refreshDeviceList];
@@ -609,7 +618,6 @@
             });
         }
         else {
-            
             ON_MAIN_THREAD(^{
                 [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:1.0]];
                 dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
@@ -619,6 +627,41 @@
             
             [self setPositiveStatus:@"Installed"];
             [self _updateSelectedDeviceUI];
+        }
+    }];
+}
+
+#pragma mark - App Installation
+- (void)installAppBundleAtURL:(NSURL *)bundleUrl {
+    if (!selectedDevice || !selectedDevice.isBooted) {
+        [self setNegativeStatus:@"Select a device first"];
+        return;
+    }
+
+    [self setStatus:[NSString stringWithFormat:@"Installing %@...", bundleUrl.lastPathComponent]];
+
+    BootedSimulatorWrapper *bootedSim = [BootedSimulatorWrapper fromSimulatorWrapper:selectedDevice];
+    [self.packageService installAppBundleAtPath:bundleUrl.path toDevice:bootedSim completion:^(NSError * _Nullable error) {
+        if (error) {
+            NSLog(@"Failed to install app: %@", error);
+            [self setNegativeStatus:[NSString stringWithFormat:@"Install failed: %@", error.localizedDescription]];
+            
+            ON_MAIN_THREAD(^{
+                [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:1.0 green:0.0 blue:0.0 alpha:1.0]];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:1.0]];
+                });
+            });
+        }
+        else {
+            ON_MAIN_THREAD(^{
+                [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:1.0 blue:0.0 alpha:1.0]];
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.simInterposer setSimulatorBorderColor:[NSColor colorWithRed:0.0 green:0.0 blue:0.0 alpha:1.0]];
+                });
+            });
+            
+            [self setPositiveStatus:@"Installed"];
         }
     }];
 }
