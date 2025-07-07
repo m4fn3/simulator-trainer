@@ -1,8 +1,10 @@
 # simulator-trainer
 
-Drag an iOS app or tweak .deb file into a Simulator to install it
+Simulator tweak injection and helpers
 
 ## Usage
+
+Drag an iOS app or tweak .deb file into a Simulator to install it
 
 1. Download/build an iOS app or iOS tweak (`.deb`).
 2. Boot a Simulator with **simulator-trainer**.  
