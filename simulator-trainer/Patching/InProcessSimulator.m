@@ -260,6 +260,19 @@
 - (void)launchSimulatorFromDylib:(NSString *)simulatorDylibPath {
     // Create Simulator's AppDelegate, trigger applicationDidFinishLaunching flow (does a bunch of setup)
     Class _SimulatorAppDelegate = objc_getClass("SimulatorAppDelegate");
+    
+    SEL _applicationOpenURLs = sel_registerName("application:openURLs:");
+    void (^newApplicationOpenURLs)(id, NSApplication *, NSArray<NSURL *> *) = ^(id _self, NSApplication *app, NSArray<NSURL *> *urls) {
+        NSLog(@"SimulatorAppDelegate received openURLs: %@", urls);
+        
+        // Forward to the main app delegate
+        id mainAppDelegate = [NSApp delegate];
+        if ([mainAppDelegate respondsToSelector:@selector(application:openURLs:)]) {
+            [mainAppDelegate application:app openURLs:urls];
+        }
+    };
+    [self _swizzleSelector:_applicationOpenURLs ofClass:_SimulatorAppDelegate withBlock:newApplicationOpenURLs];
+    
     self->_simulatorDelegate = [[_SimulatorAppDelegate alloc] init];
     ((void (*)(id, SEL, id))objc_msgSend)(self.simulatorDelegate, sel_registerName("applicationDidFinishLaunching:"), nil);
     
