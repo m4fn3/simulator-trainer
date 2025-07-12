@@ -18,7 +18,7 @@
 	<key>SMPrivilegedExecutables</key>
 	<dict>
 		<key>com.objc.simulator-trainer.SimRuntimeHelper</key>
-		<string>identifier "com.objc.simulator-trainer.SimRuntimeHelper" and anchor apple generic and certificate leaf[subject.CN] = "Apple Development: Ethan Arbuckle (MZMW94V83P)" and certificate 1[field.1.2.840.113635.100.6.2.1] /* exists */</string>
+		<string>REPLACE_THIS</string>
 	</dict>
 </dict>
 </plist>

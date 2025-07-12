@@ -298,6 +298,7 @@
 				5FC346D32DC0A55100572D7F /* Resources */,
 				5F7514162DD9789F005BAFA7 /* CopyFiles */,
 				5F19A8122DEF018600D52D33 /* Embed Frameworks */,
+				5F20A5822E2305DA00A0FDC9 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -374,6 +375,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5F20A5822E2305DA00A0FDC9 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 SMJobBlessUtil.py check $BUILT_PRODUCTS_DIR/simulator-trainer.app\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5F0DDBC32DD9468700F6A709 /* Sources */ = {
@@ -572,7 +593,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -634,7 +655,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -706,6 +727,13 @@
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/external",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
@@ -768,6 +796,13 @@
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 					"$(PROJECT_DIR)/external",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
+					"$(PROJECT_DIR)/simulator-trainer/Supporting\\ Files/bootstrap",
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.objc.simulator-trainer.App";
