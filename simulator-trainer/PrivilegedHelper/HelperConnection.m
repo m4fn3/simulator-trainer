@@ -61,7 +61,7 @@
     if (jobDictionary) {
         // Nothing further to do
         CFRelease(jobDictionary);
-//        return YES;
+        return YES;
     }
     
     // The helper service is not installed, so install it
@@ -135,6 +135,42 @@
         return;
     }
 
+    // Ensure we have valid authorization
+    if (!self->authRef) {
+        [self _setupAuthorizationForHelper];
+        if (!self->authRef) {
+            if (completion) {
+                completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create authorization reference."}]);
+            }
+            return;
+        }
+    }
+
+    // Acquire the right
+    AuthorizationItem right = {kSimRuntimeHelperAuthRightName.UTF8String, 0, NULL, 0};
+    AuthorizationRights rights = {1, &right};
+    AuthorizationFlags flags = kAuthorizationFlagExtendRights | kAuthorizationFlagInteractionAllowed;
+
+    OSStatus status = AuthorizationCopyRights(self->authRef, &rights, NULL, flags, NULL);
+    if (status != errAuthorizationSuccess) {
+        NSLog(@"Failed to acquire authorization rights: %d", (int)status);
+        if (completion) {
+            completion([NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:@{NSLocalizedDescriptionKey: @"Failed to acquire authorization rights."}]);
+        }
+        return;
+    }
+
+    // Create fresh external form
+    AuthorizationExternalForm extForm;
+    if (AuthorizationMakeExternalForm(self->authRef, &extForm) != errAuthorizationSuccess) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create external authorization form."}]);
+        }
+        return;
+    }
+
+    self.authorizationData = [NSData dataWithBytes:&extForm length:sizeof(extForm)];
+
     id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
         NSLog(@"XPC proxy error (mountTmpfsOverlaysAtPaths): %@", proxyError);
         if (completion) {
@@ -142,7 +178,7 @@
         }
     }];
     
-    [proxy mountTmpfsOverlaysAtPaths:overlayPaths completion:completion];
+    [proxy mountTmpfsOverlaysAtPaths:overlayPaths withAuthorization:self.authorizationData completion:completion];
 }
 
 - (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError * _Nullable error))completion {
@@ -155,6 +191,42 @@
         return;
     }
 
+    // Ensure we have valid authorization
+    if (!self->authRef) {
+        [self _setupAuthorizationForHelper];
+        if (!self->authRef) {
+            if (completion) {
+                completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create authorization reference."}]);
+            }
+            return;
+        }
+    }
+
+    // Acquire the right
+    AuthorizationItem right = {kSimRuntimeHelperAuthRightName.UTF8String, 0, NULL, 0};
+    AuthorizationRights rights = {1, &right};
+    AuthorizationFlags flags = kAuthorizationFlagExtendRights | kAuthorizationFlagInteractionAllowed;
+
+    OSStatus status = AuthorizationCopyRights(self->authRef, &rights, NULL, flags, NULL);
+    if (status != errAuthorizationSuccess) {
+        NSLog(@"Failed to acquire authorization rights: %d", (int)status);
+        if (completion) {
+            completion([NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:@{NSLocalizedDescriptionKey: @"Failed to acquire authorization rights."}]);
+        }
+        return;
+    }
+
+    // Create fresh external form
+    AuthorizationExternalForm extForm;
+    if (AuthorizationMakeExternalForm(self->authRef, &extForm) != errAuthorizationSuccess) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create external authorization form."}]);
+        }
+        return;
+    }
+
+    self.authorizationData = [NSData dataWithBytes:&extForm length:sizeof(extForm)];
+
     id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
         NSLog(@"XPC proxy error (setupTweakInjectionWithOptions): %@", proxyError);
         if (completion) {
@@ -162,7 +234,7 @@
         }
     }];
     
-    [proxy setupTweakInjectionWithOptions:options completion:completion];
+    [proxy setupTweakInjectionWithOptions:options withAuthorization:self.authorizationData completion:completion];
 }
 
 - (void)unmountMountPoints:(NSArray<NSString *> *)mountPoints completion:(void (^)(NSError * _Nullable error))completion {
@@ -175,14 +247,50 @@
         return;
     }
 
+    // Ensure we have valid authorization
+    if (!self->authRef) {
+        [self _setupAuthorizationForHelper];
+        if (!self->authRef) {
+            if (completion) {
+                completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create authorization reference."}]);
+            }
+            return;
+        }
+    }
+
+    // Acquire the right
+    AuthorizationItem right = {kSimRuntimeHelperAuthRightName.UTF8String, 0, NULL, 0};
+    AuthorizationRights rights = {1, &right};
+    AuthorizationFlags flags = kAuthorizationFlagExtendRights | kAuthorizationFlagInteractionAllowed;
+
+    OSStatus status = AuthorizationCopyRights(self->authRef, &rights, NULL, flags, NULL);
+    if (status != errAuthorizationSuccess) {
+        NSLog(@"Failed to acquire authorization rights: %d", (int)status);
+        if (completion) {
+            completion([NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:@{NSLocalizedDescriptionKey: @"Failed to acquire authorization rights."}]);
+        }
+        return;
+    }
+
+    // Create fresh external form
+    AuthorizationExternalForm extForm;
+    if (AuthorizationMakeExternalForm(self->authRef, &extForm) != errAuthorizationSuccess) {
+        if (completion) {
+            completion([NSError errorWithDomain:NSCocoaErrorDomain code:-1 userInfo:@{NSLocalizedDescriptionKey: @"Failed to create external authorization form."}]);
+        }
+        return;
+    }
+
+    self.authorizationData = [NSData dataWithBytes:&extForm length:sizeof(extForm)];
+
     id <SimRuntimeHelperProtocol> proxy = [conn remoteObjectProxyWithErrorHandler:^(NSError * _Nonnull proxyError) {
         NSLog(@"XPC proxy error (unmountMountPoints): %@", proxyError);
         if (completion) {
             completion(proxyError);
         }
     }];
-    
-    [proxy unmountMountPoints:mountPoints completion:completion];
+
+    [proxy unmountMountPoints:mountPoints withAuthorization:self.authorizationData completion:completion];
 }
 
 @end
