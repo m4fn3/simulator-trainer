@@ -38,7 +38,16 @@
     return YES;
 }
 
-- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options completion:(void (^)(NSError *error))completion {
+- (void)setupTweakInjectionWithOptions:(SimInjectionOptions *)options withAuthorization:(NSData *)authData completion:(void (^)(NSError *error))completion {
+    // Check authorization
+    if (![self checkAuthorization:authData error:nil]) {
+        if (completion) {
+            NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Authorization denied"}];
+            completion(error);
+        }
+        return;
+    }
+    
     if (!options || !options.tweakLoaderSourcePath || !options.tweakLoaderDestinationPath || !options.victimPathForTweakLoader) {
         if (completion) {
             NSError *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:paramErr userInfo:@{NSLocalizedDescriptionKey:[NSString stringWithFormat:@"Invalid options: %@", options]}];
@@ -92,7 +101,51 @@
     }
 }
 
-- (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths completion:(void (^)(NSError *error))completion {
+- (BOOL)checkAuthorization:(NSData *)authData error:(NSError **)error {
+    if (!authData || authData.length != sizeof(AuthorizationExternalForm)) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Invalid authorization data"}];
+        }
+        return NO;
+    }
+
+    // Convert external form back to authorization reference
+    AuthorizationRef authRef = NULL;
+    AuthorizationExternalForm extForm;
+    [authData getBytes:&extForm length:sizeof(extForm)];
+    OSStatus status = AuthorizationCreateFromExternalForm(&extForm, &authRef);
+    if (status != errAuthorizationSuccess) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:@{NSLocalizedDescriptionKey: @"Failed to create authorization from external form"}];
+        }
+        return NO;
+    }
+
+    // Check if the authorization has the right
+    AuthorizationItem right = {kSimRuntimeHelperAuthRightName.UTF8String, 0, NULL, 0};
+    AuthorizationRights rights = {1, &right};
+    status = AuthorizationCopyRights(authRef, &rights, NULL, kAuthorizationFlagExtendRights, NULL);
+    AuthorizationFree(authRef, kAuthorizationFlagDefaults);
+
+    if (status != errAuthorizationSuccess) {
+        if (error) {
+            *error = [NSError errorWithDomain:NSOSStatusErrorDomain code:status userInfo:@{NSLocalizedDescriptionKey: @"Authorization denied"}];
+        }
+        return NO;
+    }
+
+    return YES;
+}
+
+- (void)mountTmpfsOverlaysAtPaths:(NSArray<NSString *> *)overlayPaths withAuthorization:(NSData *)authData completion:(void (^)(NSError *error))completion {
+    // Check authorization
+    NSError *authError = nil;
+    if (![self checkAuthorization:authData error:&authError]) {
+        if (completion) {
+            completion(authError ?: [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Authorization denied"}]);
+        }
+        return;
+    }
     for (NSString *overlayPath in overlayPaths) {
         NSError *error = nil;
         if (![self _mountOverlayAtPath:overlayPath error:&error]) {
@@ -143,7 +196,15 @@
     return YES;
 }
 
-- (void)unmountMountPoints:(NSArray <NSString *> *)mountPoints completion:(void (^)(NSError *))completion {
+- (void)unmountMountPoints:(NSArray <NSString *> *)mountPoints withAuthorization:(NSData *)authData completion:(void (^)(NSError *))completion {
+    // Check authorization
+    NSError *authError = nil;
+    if (![self checkAuthorization:authData error:&authError]) {
+        if (completion) {
+            completion(authError ?: [NSError errorWithDomain:NSOSStatusErrorDomain code:errAuthorizationDenied userInfo:@{NSLocalizedDescriptionKey: @"Authorization denied"}]);
+        }
+        return;
+    }
     for (NSString *mountPoint in mountPoints) {
         NSError *error = nil;
         if (![self _unmountOverlayAtPath:mountPoint error:&error]) {
