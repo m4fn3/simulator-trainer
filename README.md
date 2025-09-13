@@ -1,3 +1,13 @@
+# Usage
+1. Open Xcode and modify a Team (ref: https://ios-docs.dev/no-account-for-team/)
+2. Build the project `xcodebuild clean build  ARCHS=arm64 ONLY_ACTIVE_ARCH=YES`
+3. Copy simulator-trainer/simulator-trainer/Supporting Files/bootstrap/libcycript_mac.dylib to simulator-trainer/lib/libcycript.deb
+4. `export DYLD_LIBRARY_PATH=simulator-trainer/lib/libcycript.dylib:$DYLD_LIBRARY_PATH; simulator-trainer/build/Release/simulator-trainer.app/Contents/MacOS/simulator-trainer`
+
+Idk real fix, so it's a temporary solution
+
+---
+
 # Authorization Fix for simulator-trainer
 
 ## Problem
