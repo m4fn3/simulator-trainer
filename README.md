@@ -1,10 +1,13 @@
 # Usage
-1. Open Xcode and modify a Team (ref: https://ios-docs.dev/no-account-for-team/)
-2. Build the project `xcodebuild clean build  ARCHS=arm64 ONLY_ACTIVE_ARCH=YES`
-3. Copy simulator-trainer/simulator-trainer/Supporting Files/bootstrap/libcycript_mac.dylib to simulator-trainer/lib/libcycript.deb
-4. `export DYLD_LIBRARY_PATH=simulator-trainer/lib/libcycript.dylib:$DYLD_LIBRARY_PATH; simulator-trainer/build/Release/simulator-trainer.app/Contents/MacOS/simulator-trainer`
+1. Open Xcode and change the Team to yours (ref: https://ios-docs.dev/no-account-for-team/)
+2. Modify simulator-trainer/Info.plist (REPLACE_THIS) and SimRuntimeHelper/SimRuntimeHelper-Info.plist (identifier ~ */) to match your credientials
+( 3. To check your credentials, try building the app and running `python SMjobBlessUtil.py check simulator-trainer/build/Release/simulator-trainer.app` ) 
+4. Build the project `xcodebuild clean build ARCHS=arm64 ONLY_ACTIVE_ARCH=YES`
+5. Go to Settings->Privacy&Security and allow FullDiskAccess to the simulator-trainer app
+6. Copy simulator-trainer/simulator-trainer/Supporting Files/bootstrap/libcycript_mac.dylib to simulator-trainer/lib/libcycript.deb
+7. Run the app by `export DYLD_LIBRARY_PATH=simulator-trainer/lib/libcycript.dylib:$DYLD_LIBRARY_PATH; simulator-trainer/build/Release/simulator-trainer.app/Contents/MacOS/simulator-trainer`
 
-Idk real fix, so it's a temporary solution
+Idk real fix, so it's a temporary solution to inject libcycript
 
 ---
 
